@@ -5,7 +5,11 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+import plotly.io as pio
 import streamlit as st
+
+# FIX de estabilidad vital para Kaleido en Windows/Linux
+pio.kaleido.scope.mathjax = None
 
 def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     pdf = FPDF(orientation="P", unit="mm", format="A4")
@@ -17,7 +21,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         except:
             pass
         pdf.set_font("Arial", "B", 22)
-        pdf.set_text_color(26, 91, 54)
+        pdf.set_text_color(26, 91, 54) # Verde Institucional DyJ
         pdf.cell(0, 15, "Reporte Bio-Banding", ln=True, align="L")
         pdf.set_font("Arial", "B", 16)
         pdf.set_text_color(100, 100, 100)
@@ -75,21 +79,16 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     draw_kpi(77.5, 103, "PESO (KG)", v_peso)
     draw_kpi(140, 103, "RITMO (CM/AÑO)", v_ritmo)
 
-    # 3. Velocímetros
     color_phv = "#E74C3C" if v_phv >= 92 else ("#E67E22" if v_phv >= 88 else "#2ECC71")
     fig_g = go.Figure()
     fig_g.add_trace(go.Indicator(mode="gauge+number", value=v_phv, domain={'x': [0, 0.45], 'y': [0, 1]}, title={'text': "% Madurez", 'font': {'size': 24}}, gauge={'axis': {'range': [80, 100]}, 'bar': {'color': color_phv}}))
     fig_g.add_trace(go.Indicator(mode="gauge+number", value=v_grt, domain={'x': [0.55, 1], 'y': [0, 1]}, title={'text': "Tasa Crecimiento", 'font': {'size': 24}}, gauge={'axis': {'range': [0, 15]}, 'bar': {'color': "black"}, 'steps': [{'range': [0, 5], 'color': "#2ECC71"}, {'range': [5, 10], 'color': "#F1C40F"}, {'range': [10, 15], 'color': "#E74C3C"}]}))
     fig_g.update_layout(width=1200, height=400, margin=dict(l=80, r=80, t=60, b=40))
-    try:
-        img_g = fig_g.to_image(format="png", engine="kaleido", scale=2)
-        pdf.image(BytesIO(img_g), x=10, y=128, w=190)
-    except Exception as e:
-        pdf.set_xy(10, 140)
-        pdf.set_font("Arial", "I", 10)
-        pdf.cell(190, 10, "Grafico de Medidores no disponible en la nube.", align="C")
+    
+    # SIN TRY/EXCEPT: Obligamos a Kaleido a generar la imagen
+    img_g = fig_g.to_image(format="png", engine="kaleido", scale=2)
+    pdf.image(BytesIO(img_g), x=10, y=128, w=190)
 
-    # 4. Scatter Histórico del Jugador
     df_hist_plot = df_historico[df_historico['Nombre y Apellido'] == jug_sel]
     if not df_hist_plot.empty:
         fig_hist = px.scatter(df_hist_plot, x='Edad_Decimal', y='Altura de Pie ', title="Crecimiento vs Edad Decimal")
@@ -97,11 +96,9 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         fig_hist.update_layout(width=1200, height=500, title_x=0.5, plot_bgcolor='white', margin=dict(l=80, r=60, t=60, b=80), font=dict(size=18))
         fig_hist.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title="Edad Decimal")
         fig_hist.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Altura de Pie (cm)")
-        try:
-            img_hist = fig_hist.to_image(format="png", engine="kaleido", scale=2)
-            pdf.image(BytesIO(img_hist), x=10, y=195, w=190)
-        except:
-            pass
+        
+        img_hist = fig_hist.to_image(format="png", engine="kaleido", scale=2)
+        pdf.image(BytesIO(img_hist), x=10, y=195, w=190)
 
     # =========================================================
     # PÁGINA 2: JUGADORES
@@ -163,11 +160,11 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         fig_g1.add_hline(y=7, line_dash="dash", line_color="#E74C3C", line_width=2)
         fig_g1.add_vline(x=0, line_dash="dash", line_color="#E74C3C", line_width=2)
         fig_g1.update_layout(width=1200, height=600, title_x=0.5, plot_bgcolor='white', margin=dict(l=80, r=60, t=60, b=80), font=dict(size=18), xaxis_range=[-3, 3], yaxis_range=[0, 20])
-        try:
-            img_g1 = fig_g1.to_image(format="png", engine="kaleido", scale=2)
-            pdf.image(BytesIO(img_g1), x=10, y=110, w=190)
-        except:
-            pass
+        fig_g1.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title="Distancia al inicio de maduración (M.O)")
+        fig_g1.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Crecimiento (cm/año)")
+        
+        img_g1 = fig_g1.to_image(format="png", engine="kaleido", scale=2)
+        pdf.image(BytesIO(img_g1), x=10, y=110, w=190)
 
     # =========================================================
     # PÁGINA 3: CONOCIMIENTO GLOBAL
@@ -180,11 +177,9 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         fig_b.update_traces(marker_color='#BDC3C7', texttemplate='%{y:.1f}%', textposition='outside')
         fig_b.add_hline(y=90, line_dash="dash", line_color="#E74C3C", line_width=2)
         fig_b.update_layout(width=1200, height=500, title_x=0.5, plot_bgcolor='white', yaxis_range=[60, 105], margin=dict(l=80, r=60, t=60, b=100), font=dict(size=18))
-        try:
-            img_b = fig_b.to_image(format="png", engine="kaleido", scale=2)
-            pdf.image(BytesIO(img_b), x=10, y=35, w=190)
-        except:
-            pass
+        
+        img_b = fig_b.to_image(format="png", engine="kaleido", scale=2)
+        pdf.image(BytesIO(img_b), x=10, y=35, w=190)
 
     if not df_plot.empty:
         fig_c = px.scatter(df_plot, x='M.O', y='Gr.T', title=f"Ubicación de {jug_sel} en el Plantel")
@@ -194,10 +189,10 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         if not data_jug.empty:
             fig_c.add_scatter(x=data_jug['M.O'], y=data_jug['Gr.T'], mode='markers', marker=dict(size=28, color='#F1C40F', symbol='star', line=dict(width=2, color='black')), name=jug_sel)
         fig_c.update_layout(width=1200, height=600, title_x=0.5, plot_bgcolor='white', xaxis_range=[-3, 3], yaxis_range=[0, 20], margin=dict(l=80, r=60, t=60, b=80), font=dict(size=18))
-        try:
-            img_c = fig_c.to_image(format="png", engine="kaleido", scale=2)
-            pdf.image(BytesIO(img_c), x=10, y=140, w=190)
-        except:
-            pass
+        fig_c.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title="Distancia al inicio de maduración (M.O)")
+        fig_c.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Crecimiento (cm/año)")
+        
+        img_c = fig_c.to_image(format="png", engine="kaleido", scale=2)
+        pdf.image(BytesIO(img_c), x=10, y=140, w=190)
 
     return bytes(pdf.output())
