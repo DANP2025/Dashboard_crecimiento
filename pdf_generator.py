@@ -5,11 +5,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-import plotly.io as pio
 import streamlit as st
-
-# FIX de estabilidad vital para Kaleido en Windows/Linux
-pio.kaleido.scope.mathjax = None
 
 def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     pdf = FPDF(orientation="P", unit="mm", format="A4")
@@ -84,8 +80,6 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     fig_g.add_trace(go.Indicator(mode="gauge+number", value=v_phv, domain={'x': [0, 0.45], 'y': [0, 1]}, title={'text': "% Madurez", 'font': {'size': 24}}, gauge={'axis': {'range': [80, 100]}, 'bar': {'color': color_phv}}))
     fig_g.add_trace(go.Indicator(mode="gauge+number", value=v_grt, domain={'x': [0.55, 1], 'y': [0, 1]}, title={'text': "Tasa Crecimiento", 'font': {'size': 24}}, gauge={'axis': {'range': [0, 15]}, 'bar': {'color': "black"}, 'steps': [{'range': [0, 5], 'color': "#2ECC71"}, {'range': [5, 10], 'color': "#F1C40F"}, {'range': [10, 15], 'color': "#E74C3C"}]}))
     fig_g.update_layout(width=1200, height=400, margin=dict(l=80, r=80, t=60, b=40))
-    
-    # SIN TRY/EXCEPT: Obligamos a Kaleido a generar la imagen
     img_g = fig_g.to_image(format="png", engine="kaleido", scale=2)
     pdf.image(BytesIO(img_g), x=10, y=128, w=190)
 
@@ -96,7 +90,6 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         fig_hist.update_layout(width=1200, height=500, title_x=0.5, plot_bgcolor='white', margin=dict(l=80, r=60, t=60, b=80), font=dict(size=18))
         fig_hist.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title="Edad Decimal")
         fig_hist.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Altura de Pie (cm)")
-        
         img_hist = fig_hist.to_image(format="png", engine="kaleido", scale=2)
         pdf.image(BytesIO(img_hist), x=10, y=195, w=190)
 
@@ -162,7 +155,6 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         fig_g1.update_layout(width=1200, height=600, title_x=0.5, plot_bgcolor='white', margin=dict(l=80, r=60, t=60, b=80), font=dict(size=18), xaxis_range=[-3, 3], yaxis_range=[0, 20])
         fig_g1.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title="Distancia al inicio de maduración (M.O)")
         fig_g1.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Crecimiento (cm/año)")
-        
         img_g1 = fig_g1.to_image(format="png", engine="kaleido", scale=2)
         pdf.image(BytesIO(img_g1), x=10, y=110, w=190)
 
@@ -177,7 +169,6 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         fig_b.update_traces(marker_color='#BDC3C7', texttemplate='%{y:.1f}%', textposition='outside')
         fig_b.add_hline(y=90, line_dash="dash", line_color="#E74C3C", line_width=2)
         fig_b.update_layout(width=1200, height=500, title_x=0.5, plot_bgcolor='white', yaxis_range=[60, 105], margin=dict(l=80, r=60, t=60, b=100), font=dict(size=18))
-        
         img_b = fig_b.to_image(format="png", engine="kaleido", scale=2)
         pdf.image(BytesIO(img_b), x=10, y=35, w=190)
 
@@ -191,7 +182,6 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         fig_c.update_layout(width=1200, height=600, title_x=0.5, plot_bgcolor='white', xaxis_range=[-3, 3], yaxis_range=[0, 20], margin=dict(l=80, r=60, t=60, b=80), font=dict(size=18))
         fig_c.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title="Distancia al inicio de maduración (M.O)")
         fig_c.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Crecimiento (cm/año)")
-        
         img_c = fig_c.to_image(format="png", engine="kaleido", scale=2)
         pdf.image(BytesIO(img_c), x=10, y=140, w=190)
 
