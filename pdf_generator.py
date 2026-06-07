@@ -5,21 +5,21 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+import plotly.io as pio
 import streamlit as st
-from kaleido.scopes.plotly import PlotlyScope
 
 def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     # =========================================================
-    # FIX VITAL PARA STREAMLIT CLOUD: Configuración de Chromium
+    # FIX SEGURO PARA STREAMLIT CLOUD Y LINUX
     # =========================================================
-    scope = PlotlyScope(
-        chromium_args=(
-            "--no-sandbox",
-            "--disable-dev-shm-usage",
-            "--single-process",
-            "--disable-gpu"
-        )
-    )
+    try:
+        # Inyectamos los permisos de seguridad de Linux directamente en Plotly
+        current_args = list(pio.kaleido.scope.chromium_args)
+        if "--no-sandbox" not in current_args:
+            current_args.extend(["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--single-process"])
+            pio.kaleido.scope.chromium_args = tuple(current_args)
+    except Exception:
+        pass
 
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     
@@ -42,7 +42,6 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     # =========================================================
     add_page_header(f"Perfil Individual: {jug_sel}")
     
-    # 1. FOTO DEL JUGADOR
     url_foto = data_jug['URLFOTO'].values[0] if 'URLFOTO' in data_jug.columns and not data_jug.empty else None
     if pd.notna(url_foto):
         try:
@@ -52,7 +51,6 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         except:
             pass
 
-    # 2. KPIs
     pdf.set_y(80) 
     
     if not data_jug.empty:
@@ -71,7 +69,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     def draw_kpi(x, y, label, value):
         pdf.set_xy(x, y)
         pdf.set_fill_color(248, 249, 250)
-        pdf.set_draw_color(39, 174, 96) # Borde verde
+        pdf.set_draw_color(39, 174, 96) 
         pdf.cell(55, 18, "", border=1, fill=True)
         pdf.set_xy(x, y+2)
         pdf.set_font("Arial", "B", 16)
@@ -90,18 +88,20 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     draw_kpi(77.5, 103, "PESO (KG)", v_peso)
     draw_kpi(140, 103, "RITMO (CM/AÑO)", v_ritmo)
 
-    # 3. Velocímetros (Gauge Charts)
     color_phv = "#E74C3C" if v_phv >= 92 else ("#E67E22" if v_phv >= 88 else "#2ECC71")
     fig_g = go.Figure()
     fig_g.add_trace(go.Indicator(mode="gauge+number", value=v_phv, domain={'x': [0, 0.45], 'y': [0, 1]}, title={'text': "% Madurez", 'font': {'size': 24}}, gauge={'axis': {'range': [80, 100]}, 'bar': {'color': color_phv}}))
     fig_g.add_trace(go.Indicator(mode="gauge+number", value=v_grt, domain={'x': [0.55, 1], 'y': [0, 1]}, title={'text': "Tasa Crecimiento", 'font': {'size': 24}}, gauge={'axis': {'range': [0, 15]}, 'bar': {'color': "black"}, 'steps': [{'range': [0, 5], 'color': "#2ECC71"}, {'range': [5, 10], 'color': "#F1C40F"}, {'range': [10, 15], 'color': "#E74C3C"}]}))
     fig_g.update_layout(width=1200, height=400, margin=dict(l=80, r=80, t=60, b=40))
     
-    # NUEVO MÉTODO DE RENDERIZADO KALEIDO CLOUD
-    img_g_bytes = scope.transform(fig_g, format="png", scale=2)
-    pdf.image(BytesIO(img_g_bytes), x=10, y=128, w=190)
+    try:
+        img_g_bytes = fig_g.to_image(format="png", engine="kaleido", scale=2)
+        pdf.image(BytesIO(img_g_bytes), x=10, y=128, w=190)
+    except:
+        pdf.set_xy(10, 140)
+        pdf.set_font("Arial", "I", 10)
+        pdf.cell(190, 10, "Generando grafico de medidores...", align="C")
 
-    # 4. Scatter Histórico del Jugador
     df_hist_plot = df_historico[df_historico['Nombre y Apellido'] == jug_sel]
     if not df_hist_plot.empty:
         fig_hist = px.scatter(df_hist_plot, x='Edad_Decimal', y='Altura de Pie ', title="Crecimiento vs Edad Decimal")
@@ -110,8 +110,11 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         fig_hist.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title="Edad Decimal")
         fig_hist.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Altura de Pie (cm)")
         
-        img_hist_bytes = scope.transform(fig_hist, format="png", scale=2)
-        pdf.image(BytesIO(img_hist_bytes), x=10, y=195, w=190)
+        try:
+            img_hist_bytes = fig_hist.to_image(format="png", engine="kaleido", scale=2)
+            pdf.image(BytesIO(img_hist_bytes), x=10, y=195, w=190)
+        except:
+            pass
 
     # =========================================================
     # PÁGINA 2: JUGADORES
@@ -176,8 +179,11 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         fig_g1.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title="Distancia al inicio de maduración (M.O)")
         fig_g1.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Crecimiento (cm/año)")
         
-        img_g1_bytes = scope.transform(fig_g1, format="png", scale=2)
-        pdf.image(BytesIO(img_g1_bytes), x=10, y=110, w=190)
+        try:
+            img_g1_bytes = fig_g1.to_image(format="png", engine="kaleido", scale=2)
+            pdf.image(BytesIO(img_g1_bytes), x=10, y=110, w=190)
+        except:
+            pass
 
     # =========================================================
     # PÁGINA 3: CONOCIMIENTO GLOBAL
@@ -191,8 +197,11 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         fig_b.add_hline(y=90, line_dash="dash", line_color="#E74C3C", line_width=2)
         fig_b.update_layout(width=1200, height=500, title_x=0.5, plot_bgcolor='white', yaxis_range=[60, 105], margin=dict(l=80, r=60, t=60, b=100), font=dict(size=18))
         
-        img_b_bytes = scope.transform(fig_b, format="png", scale=2)
-        pdf.image(BytesIO(img_b_bytes), x=10, y=35, w=190)
+        try:
+            img_b_bytes = fig_b.to_image(format="png", engine="kaleido", scale=2)
+            pdf.image(BytesIO(img_b_bytes), x=10, y=35, w=190)
+        except:
+            pass
 
     if not df_plot.empty:
         fig_c = px.scatter(df_plot, x='M.O', y='Gr.T', title=f"Ubicación de {jug_sel} en el Plantel")
@@ -205,7 +214,10 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         fig_c.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title="Distancia al inicio de maduración (M.O)")
         fig_c.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Crecimiento (cm/año)")
         
-        img_c_bytes = scope.transform(fig_c, format="png", scale=2)
-        pdf.image(BytesIO(img_c_bytes), x=10, y=140, w=190)
+        try:
+            img_c_bytes = fig_c.to_image(format="png", engine="kaleido", scale=2)
+            pdf.image(BytesIO(img_c_bytes), x=10, y=140, w=190)
+        except:
+            pass
 
     return bytes(pdf.output())
