@@ -84,13 +84,17 @@ df_historico, df_latest = load_data()
 
 if not df_latest.empty:
     st.markdown("<br>", unsafe_allow_html=True)
-    col_f1, col_f2, col_f3 = st.columns([1, 1, 1])
+    
+    # --- FILTROS GLOBALES (Ahora con 4 columnas para incluir Posición) ---
+    col_f1, col_f2, col_f3, col_f4 = st.columns([1, 1, 1, 1])
     with col_f1: fecha_sel = st.selectbox("Fecha de Evaluación", ["Todas"] + list(df_latest['Mes_Año_Eval'].dropna().unique()))
-    with col_f2: cat_sel = st.selectbox("CATEGORÍA", ["Todas"] + list(df_latest['Categoria'].dropna().unique()))
-    with col_f3: jug_sel = st.selectbox("JUGADOR", ["Todas"] + list(df_latest['Nombre y Apellido'].dropna().sort_values().unique()))
+    with col_f2: pos_sel = st.selectbox("POSICIÓN", ["Todas"] + list(df_latest['Posicion'].dropna().unique()))
+    with col_f3: cat_sel = st.selectbox("CATEGORÍA", ["Todas"] + list(df_latest['Categoria'].dropna().unique()))
+    with col_f4: jug_sel = st.selectbox("JUGADOR", ["Todas"] + list(df_latest['Nombre y Apellido'].dropna().sort_values().unique()))
 
     df_filtrado = df_latest.copy()
     if fecha_sel != "Todas": df_filtrado = df_filtrado[df_filtrado['Mes_Año_Eval'] == fecha_sel]
+    if pos_sel != "Todas": df_filtrado = df_filtrado[df_filtrado['Posicion'] == pos_sel]
     if cat_sel != "Todas": df_filtrado = df_filtrado[df_filtrado['Categoria'] == cat_sel]
     if jug_sel != "Todas": df_filtrado = df_filtrado[df_filtrado['Nombre y Apellido'] == jug_sel]
 
