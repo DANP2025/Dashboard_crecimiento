@@ -6,4 +6,4 @@ fpdf2
 openpyxl
 requests
 Pillow
-kaleido==0.1.0.post1
+kaleido
