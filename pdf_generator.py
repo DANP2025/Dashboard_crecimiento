@@ -1,18 +1,3 @@
-import sys
-import subprocess
-
-# =========================================================
-# AUTO-FIX DE ENTORNO: Instala Kaleido en el Python activo
-# (Soluciona el problema de múltiples Python en Windows)
-# =========================================================
-try:
-    import kaleido
-except ImportError:
-    try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "kaleido==0.1.0.post1"])
-    except:
-        pass
-
 from fpdf import FPDF
 from io import BytesIO
 import requests
@@ -20,24 +5,11 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-import plotly.io as pio
 import streamlit as st
 import time
 import gc
 
-# FIX VITAL PARA KALEIDO
-try:
-    pio.kaleido.scope.mathjax = None
-    current_args = list(pio.kaleido.scope.chromium_args)
-    flags = ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--single-process", "--disable-software-rasterizer"]
-    for flag in flags:
-        if flag not in current_args:
-            current_args.append(flag)
-    pio.kaleido.scope.chromium_args = tuple(current_args)
-except Exception:
-    pass
-
-# FUNCIÓN ROBUSTA DE RENDERIZADO CON REINTENTOS
+# FUNCIÓN ROBUSTA DE RENDERIZADO (Sin hacks de scope, solo engine puro)
 def safe_render_fig(fig):
     last_error = ""
     for attempt in range(3):
