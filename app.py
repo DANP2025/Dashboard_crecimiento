@@ -67,11 +67,12 @@ def get_base64_image(img_bytes):
     return ""
 
 # --- CABECERA GLOBAL INSTITUCIONAL MULTINÍVEL ---
-col_title, col_logo = st.columns([8, 1])
+# Ajustamos las columnas a [1, 8, 1] para que el título quede perfectamente centrado
+col_empty, col_title, col_logo = st.columns([1, 8, 1])
 with col_title:
     st.markdown("""
-        <div style='margin-bottom: 15px;'>
-            <h1 style='color: #1A5B36; font-weight: 900; margin: 0; font-size: 3.5rem; line-height: 1.1; letter-spacing: 1px;'>⚽ BIO-BANDING INSTITUCIONAL:</h1>
+        <div style='margin-bottom: 15px; text-align: center;'>
+            <h1 style='color: #1A5B36; font-weight: 900; margin: 0; font-size: 3.5rem; line-height: 1.1; letter-spacing: 1px;'>BIO-BANDING INSTITUCIONAL:</h1>
             <h2 style='color: #27AE60; font-weight: 800; margin: 0; font-size: 2.2rem; line-height: 1.2; letter-spacing: 0.5px;'>ENTRENAMIENTO DEL FUTBOLISTA POR MADURACIÓN BIOLÓGICA</h2>
             <h3 style='color: #555555; font-weight: 700; margin: 0; font-size: 1.6rem; line-height: 1.2; letter-spacing: 0.5px;'>MATRIZ METODOLÓGICA INTEGRADA: MODELO - FUTBOLISTAS ATLETAS</h3>
         </div>
@@ -85,9 +86,9 @@ df_historico, df_latest = load_data()
 if not df_latest.empty:
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # --- FILTROS GLOBALES (Ahora con 4 columnas para incluir Posición) ---
+    # --- FILTROS GLOBALES ---
     col_f1, col_f2, col_f3, col_f4 = st.columns([1, 1, 1, 1])
-    with col_f1: fecha_sel = st.selectbox("Fecha de Evaluación", ["Todas"] + list(df_latest['Mes_Año_Eval'].dropna().unique()))
+    with col_f1: fecha_sel = st.selectbox("FECHA DE EVALUACIÓN", ["Todas"] + list(df_latest['Mes_Año_Eval'].dropna().unique()))
     with col_f2: pos_sel = st.selectbox("POSICIÓN", ["Todas"] + list(df_latest['Posicion'].dropna().unique()))
     with col_f3: cat_sel = st.selectbox("CATEGORÍA", ["Todas"] + list(df_latest['Categoria'].dropna().unique()))
     with col_f4: jug_sel = st.selectbox("JUGADOR", ["Todas"] + list(df_latest['Nombre y Apellido'].dropna().sort_values().unique()))
