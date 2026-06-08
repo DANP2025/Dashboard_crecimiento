@@ -9,42 +9,46 @@ from data_processor import load_data, get_image_bytes
 from pdf_generator import create_pdf
 
 # Configuración inicial
-st.set_page_config(page_title="Dashboard Bio-Banding", page_icon="⚽", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Bio-Banding Institucional", page_icon="⚽", layout="wide", initial_sidebar_state="collapsed")
 
-# --- CSS PREMIUM Y FUENTES GRANDES ---
+# --- CSS PREMIUM Y FUENTES AGENCY FB ---
 st.markdown("""
     <style>
     /* Ocultar elementos nativos molestos */
     [data-testid="collapsedControl"] { display: none; }
     section[data-testid="stSidebar"] { display: none; }
     
-    /* Tipografía Global MÁS GRANDE */
-    html, body, [class*="css"] { font-size: 18px !important; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-    p, span, div { font-size: 18px; }
+    /* Tipografía Global AGENCY FB */
+    @import url('https://fonts.cdnfonts.com/css/agency-fb');
+    html, body, [class*="css"], p, span, div, label, h1, h2, h3, h4, h5, h6, button, th, td { 
+        font-family: 'Agency FB', 'Segoe UI', Roboto, Helvetica, sans-serif !important; 
+    }
+    
+    html, body, [class*="css"] { font-size: 20px !important; }
     
     /* Aumentar tamaño de etiquetas de filtros */
-    .stSelectbox label { font-size: 1.2rem !important; font-weight: 800 !important; color: #1A5B36 !important; }
+    .stSelectbox label { font-size: 1.5rem !important; font-weight: 800 !important; color: #1A5B36 !important; letter-spacing: 1px; }
     
     /* Estilo Premium de las Pestañas (Tabs) */
     .stTabs [data-baseweb="tab-list"] { gap: 10px; border-bottom: 3px solid #27AE60; padding-top: 15px; }
     .stTabs [data-baseweb="tab"] {
         height: 60px; background-color: #f8f9fa; border-radius: 12px 12px 0px 0px;
-        padding: 10px 35px; color: #555; font-size: 22px !important; font-weight: 700;
-        border: 2px solid #e0e0e0; border-bottom: none; transition: all 0.3s ease;
+        padding: 10px 35px; color: #555; font-size: 26px !important; font-weight: 700;
+        border: 2px solid #e0e0e0; border-bottom: none; transition: all 0.3s ease; letter-spacing: 1px;
     }
     .stTabs [data-baseweb="tab"]:hover { background-color: #F4D03F; color: #1A5B36; }
     .stTabs [aria-selected="true"] { background-color: #27AE60 !important; color: white !important; border-color: #27AE60 !important; }
     
-    /* Estilo Premium de las Tarjetas KPI - MEJORADAS */
+    /* Estilo Premium de las Tarjetas KPI */
     .kpi-card {
-        background-color: #ffffff; border-radius: 15px; padding: 25px 20px;
+        background-color: #ffffff; border-radius: 15px; padding: 20px 20px;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); border-left: 8px solid #27AE60;
         transition: transform 0.3s ease, box-shadow 0.3s ease; margin-bottom: 20px; 
         border-right: 1px solid #f0f0f0; border-top: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0;
     }
     .kpi-card:hover { transform: translateY(-8px); box-shadow: 0 12px 30px rgba(39, 174, 96, 0.2); }
-    .kpi-val { font-size: 2.8rem !important; font-weight: 900; color: #1A5B36; margin: 0; line-height: 1.1; }
-    .kpi-label { font-size: 1.2rem !important; color: #7f8c8d; margin: 0; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-top: 8px; }
+    .kpi-val { font-size: 3.5rem !important; font-weight: 900; color: #1A5B36; margin: 0; line-height: 1; }
+    .kpi-label { font-size: 1.4rem !important; color: #7f8c8d; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-top: 8px; }
     
     /* Sticky Player Banner */
     .sticky-player {
@@ -54,7 +58,7 @@ st.markdown("""
         border: 3px solid #27AE60; backdrop-filter: blur(8px);
     }
     .sticky-player img { border-radius: 50%; width: 45px; height: 45px; object-fit: cover; border: 2px solid #F4D03F; }
-    .sticky-player-name { font-size: 17px; font-weight: 900; color: #1A5B36; text-transform: uppercase; white-space: nowrap;}
+    .sticky-player-name { font-size: 22px; font-weight: 900; color: #1A5B36; text-transform: uppercase; white-space: nowrap; letter-spacing: 1px;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -62,12 +66,18 @@ def get_base64_image(img_bytes):
     if img_bytes: return base64.b64encode(img_bytes.getvalue()).decode()
     return ""
 
-# --- CABECERA GLOBAL ---
+# --- CABECERA GLOBAL INSTITUCIONAL MULTINÍVEL ---
 col_title, col_logo = st.columns([8, 1])
 with col_title:
-    st.markdown("<h1 style='color: #1A5B36; font-weight: 900; margin-bottom: 0; font-size: 3rem;'>⚽ Dashboard Bio-Banding</h1>", unsafe_allow_html=True)
+    st.markdown("""
+        <div style='margin-bottom: 15px;'>
+            <h1 style='color: #1A5B36; font-weight: 900; margin: 0; font-size: 3.5rem; line-height: 1.1; letter-spacing: 1px;'>⚽ BIO-BANDING INSTITUCIONAL:</h1>
+            <h2 style='color: #27AE60; font-weight: 800; margin: 0; font-size: 2.2rem; line-height: 1.2; letter-spacing: 0.5px;'>ENTRENAMIENTO DEL FUTBOLISTA POR MADURACIÓN BIOLÓGICA</h2>
+            <h3 style='color: #555555; font-weight: 700; margin: 0; font-size: 1.6rem; line-height: 1.2; letter-spacing: 0.5px;'>MATRIZ METODOLÓGICA INTEGRADA: MODELO - FUTBOLISTAS ATLETAS</h3>
+        </div>
+    """, unsafe_allow_html=True)
 with col_logo:
-    try: st.image('logo.jpeg', width=120)
+    try: st.image('logo.jpeg', width=130)
     except: pass
 
 df_historico, df_latest = load_data()
@@ -132,11 +142,12 @@ if not df_latest.empty:
     # --- PESTAÑAS (TABS) ---
     tab_dep, tab_perf, tab_con = st.tabs(["👥 Jugadores", "👤 Perfil Individual", "🌍 Conocimiento Global"])
 
-    plotly_font_config = dict(size=18, color="#333", family="Segoe UI, Arial")
-    plotly_hover_config = dict(font_size=20, font_family="Segoe UI, Arial")
+    # --- FUENTES PARA PLOTLY EN AGENCY FB ---
+    plotly_font_config = dict(size=20, color="#333", family="Agency FB, Segoe UI, Arial")
+    plotly_hover_config = dict(font_size=22, font_family="Agency FB, Segoe UI, Arial")
 
     def style_dataframe(df_styled):
-        return df_styled.set_properties(**{'font-size': '16px', 'padding': '10px'})
+        return df_styled.set_properties(**{'font-size': '20px', 'padding': '12px', 'font-family': 'Agency FB'})
 
     # ==========================================
     # TAB 1: JUGADORES
@@ -145,24 +156,24 @@ if not df_latest.empty:
         st.markdown("<br>", unsafe_allow_html=True)
         col_tabla, col_grafico = st.columns([1.2, 1])
         with col_tabla:
-            st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800;'>INDICADORES CLAVES DE RENDIMIENTO</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>INDICADORES CLAVES DE RENDIMIENTO</h3>", unsafe_allow_html=True)
             df_display = df_filtrado.rename(columns={'Edad_Decimal': 'Edad', 'Altura de Pie ': 'Altura Actual cm', 'Altura_Adulta_Predicha': 'Altura Adulta Predicha cm'})
             cols_table = ['Nombre y Apellido', 'Edad', 'Edad PHV', 'Altura Actual cm', 'Altura Adulta Predicha cm', 'Gr.T', 'M.O']
             styled_df = df_display[cols_table].style.format({'Edad': '{:.2f}', 'Edad PHV': '{:.2f}', 'Altura Actual cm': '{:.2f}', 'Altura Adulta Predicha cm': '{:.2f}', 'Gr.T': '{:.2f}', 'M.O': '{:.2f}'}, na_rep="")
             st.dataframe(style_dataframe(styled_df), hide_index=True, use_container_width=True, height=500)
 
         with col_grafico:
-            st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800;'>Porcentaje de Altura Adulta Predicha</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>Porcentaje de Altura Adulta Predicha</h3>", unsafe_allow_html=True)
             df_bar = df_filtrado.dropna(subset=['% PHV']).sort_values('% PHV', ascending=False)
             if not df_bar.empty:
                 fig_bar = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', text='% PHV')
-                fig_bar.update_traces(marker_color='#BDC3C7', texttemplate='%{text:.1f}%', textposition='outside', textfont_size=16)
+                fig_bar.update_traces(marker_color='#BDC3C7', texttemplate='%{text:.1f}%', textposition='outside', textfont_size=20)
                 fig_bar.add_hline(y=90, line_dash="dash", line_color="#E74C3C", line_width=3)
                 fig_bar.update_layout(yaxis_range=[60, 105], plot_bgcolor='white', margin=dict(t=20, b=20), xaxis_title="", font=plotly_font_config, hoverlabel=plotly_hover_config)
                 st.plotly_chart(fig_bar, use_container_width=True)
 
         st.markdown("<hr>", unsafe_allow_html=True)
-        st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800;'>Dónde están los jugadores de acuerdo a su desarrollo</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>Dónde están los jugadores de acuerdo a su desarrollo</h3>", unsafe_allow_html=True)
         df_plot = df_filtrado.dropna(subset=['M.O']) 
         if not df_plot.empty:
             fig = px.scatter(df_plot, x='M.O', y='Gr.T', hover_name='Nombre y Apellido', hover_data={'Iniciales': True, 'M.O': ':.2f', 'Gr.T': ':.2f', 'Decision_Entrenamiento': True}, labels={'M.O': 'Distancia al inicio de maduración', 'Gr.T': 'Crecimiento (cm/año)'})
@@ -170,8 +181,8 @@ if not df_latest.empty:
             fig.add_hline(y=7, line_dash="dash", line_color="#E74C3C", line_width=2)
             fig.add_vline(x=0, line_dash="dash", line_color="#E74C3C", line_width=2)
             fig.update_layout(xaxis_range=[-3, 3], yaxis_range=[0, 20], plot_bgcolor='white', height=600, margin=dict(t=30, b=30), font=plotly_font_config, hoverlabel=plotly_hover_config)
-            fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_font=dict(size=20, weight='bold'))
-            fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_font=dict(size=20, weight='bold'))
+            fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_font=dict(size=22, weight='bold'))
+            fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_font=dict(size=22, weight='bold'))
             st.plotly_chart(fig, use_container_width=True)
 
     # ==========================================
@@ -224,10 +235,10 @@ if not df_latest.empty:
             with g1:
                 fig1 = go.Figure(go.Indicator(
                     mode="gauge+number", value=v_phv, 
-                    number={'font': {'size': 50, 'color': font_color_1, 'family': 'Arial Black'}, 'valueformat': '.1f'}, 
+                    number={'font': {'size': 60, 'color': font_color_1, 'family': 'Agency FB'}, 'valueformat': '.1f'}, 
                     domain={'x': [0, 1], 'y': [0, 1]}, 
-                    title={'text': "Porcentaje de Madurez %", 'font': {'size': 20, 'color': '#7f8c8d', 'weight': 'bold'}}, 
-                    gauge={'axis': {'range': [80, 100], 'tickwidth': 2, 'tickfont': {'size': 16}}, 'bar': {'color': color_phv_gauge, 'thickness': 0.35}}
+                    title={'text': "Porcentaje de Madurez %", 'font': {'size': 24, 'color': '#7f8c8d', 'weight': 'bold', 'family': 'Agency FB'}}, 
+                    gauge={'axis': {'range': [80, 100], 'tickwidth': 2, 'tickfont': {'size': 18, 'family': 'Agency FB'}}, 'bar': {'color': color_phv_gauge, 'thickness': 0.35}}
                 ))
                 fig1.update_layout(height=300, margin=dict(l=40, r=40, t=60, b=20), font=plotly_font_config)
                 st.plotly_chart(fig1, use_container_width=True)
@@ -236,24 +247,24 @@ if not df_latest.empty:
                 color_aguja = "rgba(0,0,0,0)" if pd.isna(grt) or jug_sel == "Todas" else "#1A5B36"
                 fig2 = go.Figure(go.Indicator(
                     mode="gauge+number", value=v_grt, 
-                    number={'font': {'size': 50, 'color': font_color_2, 'family': 'Arial Black'}, 'valueformat': '.2f'}, 
+                    number={'font': {'size': 60, 'color': font_color_2, 'family': 'Agency FB'}, 'valueformat': '.2f'}, 
                     domain={'x': [0, 1], 'y': [0, 1]}, 
-                    title={'text': "Tasa de crecimiento (cm/año)", 'font': {'size': 20, 'color': '#7f8c8d', 'weight': 'bold'}}, 
-                    gauge={'axis': {'range': [0, 15], 'tickwidth': 2, 'tickfont': {'size': 16}}, 'bar': {'color': color_aguja, 'thickness': 0.35}, 'steps': [{'range': [0, 5], 'color': "#2ECC71"}, {'range': [5, 10], 'color': "#F1C40F"}, {'range': [10, 15], 'color': "#E74C3C"}]}
+                    title={'text': "Tasa de crecimiento (cm/año)", 'font': {'size': 24, 'color': '#7f8c8d', 'weight': 'bold', 'family': 'Agency FB'}}, 
+                    gauge={'axis': {'range': [0, 15], 'tickwidth': 2, 'tickfont': {'size': 18, 'family': 'Agency FB'}}, 'bar': {'color': color_aguja, 'thickness': 0.35}, 'steps': [{'range': [0, 5], 'color': "#2ECC71"}, {'range': [5, 10], 'color': "#F1C40F"}, {'range': [10, 15], 'color': "#E74C3C"}]}
                 ))
                 fig2.update_layout(height=300, margin=dict(l=40, r=40, t=60, b=20), font=plotly_font_config)
                 st.plotly_chart(fig2, use_container_width=True)
 
-        st.markdown("<h3 style='text-align: center; color: #1A5B36; margin-top: 30px; font-weight: 800;'>Crecimiento de acuerdo a la edad decimal</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; color: #1A5B36; margin-top: 30px; font-weight: 800; font-size: 2.2rem;'>Crecimiento de acuerdo a la edad decimal</h3>", unsafe_allow_html=True)
         df_hist_plot = df_historico.dropna(subset=['Edad_Decimal', 'Altura de Pie ']).copy()
         if jug_sel != "Todas": df_hist_plot = df_hist_plot[df_hist_plot['Nombre y Apellido'] == jug_sel]
 
         df_hist_plot['Etapa'] = np.where(df_hist_plot['M.O'] >= 0, 'Normal', 'Tardía')
         fig3 = px.scatter(df_hist_plot, x='Edad_Decimal', y='Altura de Pie ', color='Etapa', color_discrete_map={'Normal': '#1E3A8A', 'Tardía': '#60A5FA'}, hover_name='Nombre y Apellido', labels={'Edad_Decimal': 'Edad Decimal (Años)', 'Altura de Pie ': 'Altura (cm)'})
         fig3.update_traces(marker=dict(size=18, line=dict(width=2, color='white')))
-        fig3.update_layout(plot_bgcolor='white', height=500, margin=dict(t=30, b=30), legend_title_text='Etapa de maduración', legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, font=dict(size=18)), font=plotly_font_config, hoverlabel=plotly_hover_config)
-        fig3.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title_font=dict(size=20, weight='bold'))
-        fig3.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title_font=dict(size=20, weight='bold'))
+        fig3.update_layout(plot_bgcolor='white', height=500, margin=dict(t=30, b=30), legend_title_text='Etapa de maduración', legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, font=dict(size=22)), font=plotly_font_config, hoverlabel=plotly_hover_config)
+        fig3.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title_font=dict(size=22, weight='bold'))
+        fig3.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title_font=dict(size=22, weight='bold'))
         st.plotly_chart(fig3, use_container_width=True)
 
     # ==========================================
@@ -285,23 +296,23 @@ if not df_latest.empty:
 
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.markdown("<p style='text-align: center; font-weight: 800; font-size: 20px; color: #1A5B36;'>Jugadores cercanos a la altura PHV</p>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align: center; font-weight: 800; font-size: 1.8rem; color: #1A5B36; font-family: \"Agency FB\";'>Jugadores cercanos a la altura PHV</p>", unsafe_allow_html=True)
             df_t1 = df_filtrado[['Nombre y Apellido', 'Edad_Decimal', 'Edad PHV', 'M.O']].copy()
             df_t1['Abs_MO'] = df_t1['M.O'].abs()
             styled_t1 = df_t1.sort_values('Abs_MO').head(10).drop(columns=['Abs_MO']).rename(columns={'Edad_Decimal': 'Edad'}).style.map(color_mo, subset=['M.O']).format({'Edad': '{:.2f}', 'Edad PHV': '{:.2f}', 'M.O': '{:.2f}'}, na_rep="")
             st.dataframe(style_dataframe(styled_t1), hide_index=True, use_container_width=True)
         with col2:
-            st.markdown("<p style='text-align: center; font-weight: 800; font-size: 20px; color: #1A5B36;'>Jugadores que todavia siguen creciendo</p>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align: center; font-weight: 800; font-size: 1.8rem; color: #1A5B36; font-family: \"Agency FB\";'>Jugadores que todavia siguen creciendo</p>", unsafe_allow_html=True)
             df_t2 = df_filtrado[df_filtrado['M.O'] < 0][['Nombre y Apellido', 'Edad_Decimal', 'Edad PHV', '% PHV', 'M.O', 'Gr.T']].copy()
             styled_t2 = df_t2.sort_values('% PHV').head(10).rename(columns={'Edad_Decimal': 'Edad'}).style.map(color_phv, subset=['% PHV']).format({'Edad': '{:.2f}', 'Edad PHV': '{:.2f}', '% PHV': '{:.2f}', 'M.O': '{:.2f}', 'Gr.T': '{:.2f}'}, na_rep="")
             st.dataframe(style_dataframe(styled_t2), hide_index=True, use_container_width=True)
         with col3:
-            st.markdown("<p style='text-align: center; font-weight: 800; font-size: 20px; color: #1A5B36;'>Mas altas de Crecimiento</p>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align: center; font-weight: 800; font-size: 1.8rem; color: #1A5B36; font-family: \"Agency FB\";'>Mas altas de Crecimiento</p>", unsafe_allow_html=True)
             df_t3 = df_filtrado[['Nombre y Apellido', 'Edad_Decimal', 'M.O', 'Gr.T']].copy()
             styled_t3 = df_t3.sort_values('Gr.T', ascending=False).head(10).rename(columns={'Edad_Decimal': 'Edad'}).style.map(color_gt, subset=['Gr.T']).format({'Edad': '{:.2f}', 'M.O': '{:.2f}', 'Gr.T': '{:.2f}'}, na_rep="")
             st.dataframe(style_dataframe(styled_t3), hide_index=True, use_container_width=True)
 
-        st.markdown("<h3 style='text-align: center; color: #1A5B36; margin-top: 40px; font-weight: 800;'>Análisis Global de Desarrollo</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; color: #1A5B36; margin-top: 40px; font-weight: 800; font-size: 2.2rem;'>Análisis Global de Desarrollo</h3>", unsafe_allow_html=True)
         df_plot2 = df_filtrado.dropna(subset=['M.O'])
         if not df_plot2.empty:
             fig_c = px.scatter(df_plot2, x='M.O', y='Gr.T', hover_name='Nombre y Apellido', hover_data={'Iniciales': True, 'M.O': ':.2f', 'Gr.T': ':.2f', 'Decision_Entrenamiento': True}, labels={'M.O': 'Distancia al inicio de maduración', 'Gr.T': 'Crecimiento (cm/año)'})
@@ -310,6 +321,6 @@ if not df_latest.empty:
             fig_c.add_vline(x=0, line_dash="dash", line_color="#E74C3C", line_width=2)
             if jug_sel != "Todas" and not data_jug.empty: fig_c.add_scatter(x=data_jug['M.O'], y=data_jug['Gr.T'], mode='markers', marker=dict(size=25, color='#F1C40F', symbol='star', line=dict(width=2, color='black')), name=jug_sel)
             fig_c.update_layout(xaxis_range=[-3, 3], yaxis_range=[0, 20], plot_bgcolor='white', height=550, font=plotly_font_config, hoverlabel=plotly_hover_config)
-            fig_c.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_font=dict(size=16, weight='bold'))
-            fig_c.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_font=dict(size=16, weight='bold'))
+            fig_c.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_font=dict(size=20, weight='bold'))
+            fig_c.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_font=dict(size=20, weight='bold'))
             st.plotly_chart(fig_c, use_container_width=True)
