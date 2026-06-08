@@ -1,3 +1,18 @@
+import sys
+import subprocess
+
+# =========================================================
+# AUTO-FIX DE ENTORNO: Instala Kaleido en el Python activo
+# (Soluciona el problema de múltiples Python en Windows)
+# =========================================================
+try:
+    import kaleido
+except ImportError:
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "kaleido==0.1.0.post1"])
+    except:
+        pass
+
 from fpdf import FPDF
 from io import BytesIO
 import requests
@@ -7,32 +22,33 @@ import plotly.express as px
 import plotly.graph_objects as go
 import plotly.io as pio
 import streamlit as st
-import gc
 import time
+import gc
 
-# =========================================================
-# FIX VITAL PARA STREAMLIT CLOUD Y LINUX
-# Inyecta los permisos para evitar que Chromium se bloquee
-# =========================================================
+# FIX VITAL PARA KALEIDO
 try:
-    pio.kaleido.scope.chromium_args = tuple(
-        ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--single-process"])
-except:
+    pio.kaleido.scope.mathjax = None
+    current_args = list(pio.kaleido.scope.chromium_args)
+    flags = ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--single-process", "--disable-software-rasterizer"]
+    for flag in flags:
+        if flag not in current_args:
+            current_args.append(flag)
+    pio.kaleido.scope.chromium_args = tuple(current_args)
+except Exception:
     pass
 
-# =========================================================
 # FUNCIÓN ROBUSTA DE RENDERIZADO CON REINTENTOS
-# Evita cuelgues aleatorios. Si falla, devuelve el error.
-# =========================================================
 def safe_render_fig(fig):
     last_error = ""
     for attempt in range(3):
         try:
-            return fig.to_image(format="png", engine="kaleido", scale=2)
+            gc.collect()
+            time.sleep(0.5) 
+            return fig.to_image(format="png", engine="kaleido", scale=1.5)
         except Exception as e:
             last_error = str(e)
-            time.sleep(1.5) # Espera 1.5s y vuelve a intentar
-    raise Exception(f"Kaleido Error tras 3 intentos: {last_error}")
+            time.sleep(1.5)
+    raise Exception(f"Kaleido Error: {last_error}")
 
 def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     pdf = FPDF(orientation="P", unit="mm", format="A4")
@@ -102,7 +118,6 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     draw_kpi(77.5, 103, "PESO (KG)", v_peso)
     draw_kpi(140, 103, "RITMO (CM/AÑO)", v_ritmo)
 
-    # 3. Velocímetros (Dimensiones reducidas para no matar la RAM)
     color_phv = "#E74C3C" if v_phv >= 92 else ("#E67E22" if v_phv >= 88 else "#2ECC71")
     fig_g = go.Figure()
     fig_g.add_trace(go.Indicator(mode="gauge+number", value=v_phv, domain={'x': [0, 0.45], 'y': [0, 1]}, title={'text': "% Madurez", 'font': {'size': 24}}, gauge={'axis': {'range': [80, 100]}, 'bar': {'color': color_phv}}))
@@ -110,15 +125,14 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     fig_g.update_layout(width=900, height=300, margin=dict(l=60, r=60, t=50, b=30))
     
     try:
-        gc.collect() # Limpiar RAM
-        img_g_bytes = fig_g.to_image(format="png", engine="kaleido", scale=1.5)
+        img_g_bytes = safe_render_fig(fig_g)
         pdf.image(BytesIO(img_g_bytes), x=10, y=128, w=190)
     except Exception as e:
         pdf.set_xy(10, 140)
         pdf.set_font("Arial", "I", 8)
+        pdf.set_text_color(255, 0, 0)
         pdf.multi_cell(190, 5, f"Error Medidores: {str(e)}", align="C")
 
-    # 4. Scatter Histórico del Jugador
     df_hist_plot = df_historico[df_historico['Nombre y Apellido'] == jug_sel]
     if not df_hist_plot.empty:
         fig_hist = px.scatter(df_hist_plot, x='Edad_Decimal', y='Altura de Pie ', title="Crecimiento vs Edad Decimal")
@@ -128,12 +142,12 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         fig_hist.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Altura de Pie (cm)")
         
         try:
-            gc.collect()
-            img_hist_bytes = fig_hist.to_image(format="png", engine="kaleido", scale=1.5)
+            img_hist_bytes = safe_render_fig(fig_hist)
             pdf.image(BytesIO(img_hist_bytes), x=10, y=192, w=190)
         except Exception as e:
             pdf.set_xy(10, 210)
             pdf.set_font("Arial", "I", 8)
+            pdf.set_text_color(255, 0, 0)
             pdf.multi_cell(190, 5, f"Error Scatter 1: {str(e)}", align="C")
 
     # =========================================================
@@ -200,12 +214,12 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         fig_g1.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Crecimiento (cm/año)")
         
         try:
-            gc.collect()
-            img_g1_bytes = fig_g1.to_image(format="png", engine="kaleido", scale=1.5)
+            img_g1_bytes = safe_render_fig(fig_g1)
             pdf.image(BytesIO(img_g1_bytes), x=10, y=110, w=190)
         except Exception as e:
             pdf.set_xy(10, 130)
             pdf.set_font("Arial", "I", 8)
+            pdf.set_text_color(255, 0, 0)
             pdf.multi_cell(190, 5, f"Error Scatter 2: {str(e)}", align="C")
 
     # =========================================================
@@ -221,12 +235,12 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         fig_b.update_layout(width=960, height=400, title_x=0.5, plot_bgcolor='white', yaxis_range=[60, 105], margin=dict(l=60, r=50, t=50, b=80), font=dict(size=16))
         
         try:
-            gc.collect()
-            img_b_bytes = fig_b.to_image(format="png", engine="kaleido", scale=1.5)
+            img_b_bytes = safe_render_fig(fig_b)
             pdf.image(BytesIO(img_b_bytes), x=10, y=35, w=190)
         except Exception as e:
             pdf.set_xy(10, 50)
             pdf.set_font("Arial", "I", 8)
+            pdf.set_text_color(255, 0, 0)
             pdf.multi_cell(190, 5, f"Error Barras: {str(e)}", align="C")
 
     if not df_plot.empty:
@@ -241,12 +255,12 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         fig_c.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Crecimiento (cm/año)")
         
         try:
-            gc.collect()
-            img_c_bytes = fig_c.to_image(format="png", engine="kaleido", scale=1.5)
+            img_c_bytes = safe_render_fig(fig_c)
             pdf.image(BytesIO(img_c_bytes), x=10, y=140, w=190)
         except Exception as e:
             pdf.set_xy(10, 160)
             pdf.set_font("Arial", "I", 8)
+            pdf.set_text_color(255, 0, 0)
             pdf.multi_cell(190, 5, f"Error Scatter 3: {str(e)}", align="C")
 
     return bytes(pdf.output())
