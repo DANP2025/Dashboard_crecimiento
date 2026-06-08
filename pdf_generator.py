@@ -5,11 +5,19 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+import plotly.io as pio
 import streamlit as st
 import time
 import gc
 
-# FUNCIÓN ROBUSTA DE RENDERIZADO (Sin hacks de scope, solo engine puro)
+# =========================================================
+# FIX VITAL PARA KALEIDO 0.2.1 EN LINUX (Evita que se congele)
+# =========================================================
+try:
+    pio.kaleido.scope.mathjax = None
+except:
+    pass
+
 def safe_render_fig(fig):
     last_error = ""
     for attempt in range(3):
@@ -19,7 +27,7 @@ def safe_render_fig(fig):
             return fig.to_image(format="png", engine="kaleido", scale=1.5)
         except Exception as e:
             last_error = str(e)
-            time.sleep(1.5)
+            time.sleep(1.0)
     raise Exception(f"Kaleido Error: {last_error}")
 
 def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
