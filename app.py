@@ -319,21 +319,21 @@ if not df_latest.empty:
             df_t1['Abs_MO'] = df_t1['M.O'].abs()
             df_t1_disp = df_t1.sort_values('Abs_MO').head(10).drop(columns=['Abs_MO']).rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'Edad Biológica': 'Edad\nBiológica'})
             styled_t1 = df_t1_disp.style.map(color_mo, subset=['M.O']).format(generar_formato(df_t1_disp))
-            st.dataframe(style_dataframe(styled_t1, font_size="16px"), hide_index=True, use_container_width=True)
+            st.dataframe(style_dataframe(styled_t1), hide_index=True, use_container_width=True)
             
         with col2:
             st.markdown("<p style='text-align: center; font-weight: 800; font-size: 1.8rem; color: #1A5B36; font-family: \"Agency FB\";'>Jugadores que todavia siguen creciendo</p>", unsafe_allow_html=True)
             df_t2 = df_filtrado[df_filtrado['M.O'] < 0][['Nombre y Apellido', '% PHV', 'M.O', 'Gr.T']].copy()
             df_t2_disp = df_t2.sort_values('% PHV').head(10).rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', '% PHV': '%\nMadurez'})
             styled_t2 = df_t2_disp.style.map(color_phv, subset=['%\nMadurez']).format(generar_formato(df_t2_disp))
-            st.dataframe(style_dataframe(styled_t2, font_size="16px"), hide_index=True, use_container_width=True)
+            st.dataframe(style_dataframe(styled_t2), hide_index=True, use_container_width=True)
             
         with col3:
             st.markdown("<p style='text-align: center; font-weight: 800; font-size: 1.8rem; color: #1A5B36; font-family: \"Agency FB\";'>Mas altas de Crecimiento</p>", unsafe_allow_html=True)
             df_t3 = df_filtrado[['Nombre y Apellido', 'Edad_Decimal', 'M.O', 'Gr.T']].copy()
             df_t3_disp = df_t3.sort_values('Gr.T', ascending=False).head(10).rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad'})
             styled_t3 = df_t3_disp.style.map(color_gt, subset=['Gr.T']).format(generar_formato(df_t3_disp))
-            st.dataframe(style_dataframe(styled_t3, font_size="16px"), hide_index=True, use_container_width=True)
+            st.dataframe(style_dataframe(styled_t3), hide_index=True, use_container_width=True)
 
         st.markdown("<h3 style='text-align: center; color: #1A5B36; margin-top: 40px; font-weight: 800; font-size: 2.2rem;'>Análisis Global de Desarrollo</h3>", unsafe_allow_html=True)
         df_plot2 = df_filtrado.dropna(subset=['M.O'])
