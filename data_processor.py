@@ -15,9 +15,9 @@ def get_image_bytes(url):
     except:
         return None
 
-# Renombramos a v5 para vaciar la caché
+# Renombramos a v7 para vaciar la caché
 @st.cache_data(ttl=60)
-def load_data_v5():
+def load_data_v7():
     SHEET_ID = "1FVuYJtctdiwUzsptZOGOZcr7vXe1CMqR4f360kulYME"
     GID_DATOS = "1766718688"
     
