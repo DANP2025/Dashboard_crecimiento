@@ -95,7 +95,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     
     if not data_jug.empty:
         v_edad = f"{data_jug['Edad_Decimal'].values[0]:.2f}"
-        v_edad_bio = f"{data_jug['Edad PHV'].values[0]:.2f}"
+        v_edad_bio = f"{data_jug['Edad Biológica'].values[0]:.2f}"
         v_etapa = "Normal" if data_jug['M.O'].values[0] >= 0 else "Tardía"
         v_alt = f"{data_jug['Altura de Pie '].values[0]:.1f}"
         v_peso = f"{data_jug['Peso'].values[0]:.2f}"

@@ -5,7 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from PIL import Image
 import base64
-from data_processor import load_data_v4, get_image_bytes
+from data_processor import load_data_v5, get_image_bytes
 from pdf_generator import create_pdf
 
 # Configuración inicial
@@ -73,7 +73,7 @@ with col_logo:
     try: st.image('logo.jpeg', width=130)
     except: pass
 
-df_historico, df_latest = load_data_v4()
+df_historico, df_latest = load_data_v5()
 
 if not df_latest.empty:
     st.markdown("<br>", unsafe_allow_html=True)
@@ -164,8 +164,8 @@ if not df_latest.empty:
             st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>INDICADORES CLAVES DE RENDIMIENTO</h3>", unsafe_allow_html=True)
             # Revertimos a los nombres completos y originales. Eliminamos na_rep="" para que salga "None" nativo
             df_display = df_filtrado.rename(columns={'Edad_Decimal': 'Edad', 'Altura de Pie ': 'Altura Actual cm', 'Altura_Adulta_Predicha': 'Altura Adulta Predicha cm'})
-            cols_table = ['Nombre y Apellido', 'Edad', 'Edad PHV', 'Altura Actual cm', 'Altura Adulta Predicha cm', 'Gr.T', 'M.O']
-            styled_df = df_display[cols_table].style.format({'Edad': '{:.2f}', 'Edad PHV': '{:.2f}', 'Altura Actual cm': '{:.2f}', 'Altura Adulta Predicha cm': '{:.2f}', 'Gr.T': '{:.2f}', 'M.O': '{:.2f}'})
+            cols_table = ['Nombre y Apellido', 'Edad', 'Edad Biológica', 'Altura Actual cm', 'Altura Adulta Predicha cm', 'Gr.T', 'M.O']
+            styled_df = df_display[cols_table].style.format({'Edad': '{:.2f}', 'Edad Biológica': '{:.2f}', 'Altura Actual cm': '{:.2f}', 'Altura Adulta Predicha cm': '{:.2f}', 'Gr.T': '{:.2f}', 'M.O': '{:.2f}'})
             st.dataframe(style_dataframe(styled_df, font_size="16px"), hide_index=True, use_container_width=True, height=500)
 
         with col_grafico:
@@ -198,7 +198,7 @@ if not df_latest.empty:
         st.markdown("<br>", unsafe_allow_html=True)
         if not data_jug.empty:
             v_edad = f"{data_jug['Edad_Decimal'].values[0]:.2f}"
-            v_edad_bio = f"{data_jug['Edad PHV'].values[0]:.2f}"
+            v_edad_bio = f"{data_jug['Edad Biológica'].values[0]:.2f}"
             v_etapa = "Normal" if data_jug['M.O'].values[0] >= 0 else "Tardía"
             v_alt = f"{data_jug['Altura de Pie '].values[0]:.1f}"
             v_peso = f"{data_jug['Peso'].values[0]:.2f}"
@@ -303,18 +303,18 @@ if not df_latest.empty:
         with col1:
             st.markdown("<p style='text-align: center; font-weight: 800; font-size: 1.8rem; color: #1A5B36; font-family: \"Agency FB\";'>Jugadores cercanos a la altura PHV</p>", unsafe_allow_html=True)
             # Revertimos a nombres de columnas originales y mantenemos los Nulls nativos
-            df_t1 = df_filtrado[['Nombre y Apellido', 'Edad_Decimal', 'Edad PHV', 'M.O']].copy()
+            df_t1 = df_filtrado[['Nombre y Apellido', 'Edad_Decimal', 'Edad Biológica', 'M.O']].copy()
             df_t1['Abs_MO'] = df_t1['M.O'].abs()
             df_t1_disp = df_t1.sort_values('Abs_MO').head(10).drop(columns=['Abs_MO']).rename(columns={'Edad_Decimal': 'Edad'})
-            styled_t1 = df_t1_disp.style.map(color_mo, subset=['M.O']).format({'Edad': '{:.2f}', 'Edad PHV': '{:.2f}', 'M.O': '{:.2f}'})
+            styled_t1 = df_t1_disp.style.map(color_mo, subset=['M.O']).format({'Edad': '{:.2f}', 'Edad Biológica': '{:.2f}', 'M.O': '{:.2f}'})
             st.dataframe(style_dataframe(styled_t1, font_size="14px"), hide_index=True, use_container_width=True)
             
         with col2:
             st.markdown("<p style='text-align: center; font-weight: 800; font-size: 1.8rem; color: #1A5B36; font-family: \"Agency FB\";'>Jugadores que todavia siguen creciendo</p>", unsafe_allow_html=True)
             # Revertimos, incluimos todas las columnas como pediste
-            df_t2 = df_filtrado[df_filtrado['M.O'] < 0][['Nombre y Apellido', 'Edad_Decimal', 'Edad PHV', '% PHV', 'M.O', 'Gr.T']].copy()
+            df_t2 = df_filtrado[df_filtrado['M.O'] < 0][['Nombre y Apellido', 'Edad_Decimal', 'Edad Biológica', '% PHV', 'M.O', 'Gr.T']].copy()
             df_t2_disp = df_t2.sort_values('% PHV').head(10).rename(columns={'Edad_Decimal': 'Edad'})
-            styled_t2 = df_t2_disp.style.map(color_phv, subset=['% PHV']).format({'Edad': '{:.2f}', 'Edad PHV': '{:.2f}', '% PHV': '{:.2f}', 'M.O': '{:.2f}', 'Gr.T': '{:.2f}'})
+            styled_t2 = df_t2_disp.style.map(color_phv, subset=['% PHV']).format({'Edad': '{:.2f}', 'Edad Biológica': '{:.2f}', '% PHV': '{:.2f}', 'M.O': '{:.2f}', 'Gr.T': '{:.2f}'})
             st.dataframe(style_dataframe(styled_t2, font_size="14px"), hide_index=True, use_container_width=True)
             
         with col3:

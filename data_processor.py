@@ -15,9 +15,9 @@ def get_image_bytes(url):
     except:
         return None
 
-# FIX: v4 para invalidar caché y aplicar la corrección de fechas
+# Renombramos a v5 para vaciar la caché
 @st.cache_data(ttl=60)
-def load_data_v4():
+def load_data_v5():
     SHEET_ID = "1FVuYJtctdiwUzsptZOGOZcr7vXe1CMqR4f360kulYME"
     GID_DATOS = "1766718688"
     
@@ -27,9 +27,6 @@ def load_data_v4():
     try:
         df = pd.read_csv(url_datos)
         
-        # =========================================================
-        # MAPEO DINÁMICO DE KHAMIS-ROCHE
-        # =========================================================
         try:
             df_int = pd.read_csv(url_interceptos)
             cols = df_int.columns.astype(str).str.lower()
@@ -56,11 +53,9 @@ def load_data_v4():
                 df[col] = df[col].astype(str).str.replace(',', '.').str.replace(r'[^0-9.-]', '', regex=True)
                 df[col] = pd.to_numeric(df[col], errors='coerce')
 
-        # =========================================================
-        # FIX CRÍTICO DE ZONA/LOCALE: FORZAR FORMATO LATINO (DD/MM/YYYY)
-        # =========================================================
-        df['Fecha de Nacimiento'] = pd.to_datetime(df['Fecha de Nacimiento'], format='mixed', dayfirst=True, errors='coerce')
-        df['Fecha de Evaluacion'] = pd.to_datetime(df['Fecha de Evaluacion'], format='mixed', dayfirst=True, errors='coerce')
+        # FIX FECHAS: Quitamos dayfirst=True para respetar el formato original del CSV de Google (M/D/Y)
+        df['Fecha de Nacimiento'] = pd.to_datetime(df['Fecha de Nacimiento'], format='mixed', errors='coerce')
+        df['Fecha de Evaluacion'] = pd.to_datetime(df['Fecha de Evaluacion'], format='mixed', errors='coerce')
         
         df['Mes_Año_Eval'] = df['Fecha de Evaluacion'].dt.strftime('%B %Y')
         df['Edad_Decimal'] = (df['Fecha de Evaluacion'] - df['Fecha de Nacimiento']).dt.days / 365.25
@@ -87,17 +82,31 @@ def load_data_v4():
         df['Delta_Edad_años'] = df.groupby('DNI')['Edad_Decimal'].diff()
         df['Gr.T'] = np.where(df['Delta_Edad_años'] > 0, df['Delta_Altura_cm'] / df['Delta_Edad_años'], np.nan)
 
+        # =========================================================
+        # FIX M.O HÍBRIDO EXACTO DE DAX Y EDAD BIOLÓGICA
+        # =========================================================
         df['Leg'] = df['Altura de Pie '] - df['Altura sentado']
         df['Pxt'] = np.where(df['Altura de Pie '] > 0, (df['Peso'] / df['Altura de Pie ']) * 100, np.nan)
-        df['M.O'] = -9.236 + 0.0002708 * df['Leg'] * df['Altura sentado'] - 0.001663 * df['Edad_Decimal'] * df['Leg'] + 0.007216 * df['Edad_Decimal'] * df['Altura sentado'] + 0.02292 * df['Pxt']
-        df['Edad PHV'] = df['Edad_Decimal'] - df['M.O']
-
-        df['EdadParaTabla'] = np.floor(df['Edad_Decimal'] * 2 + 0.5) / 2
-        df = pd.merge(df, df_int, left_on='EdadParaTabla', right_on='Edad_Anios', how='left')
+        
+        mirwald = -9.236 + 0.0002708 * df['Leg'] * df['Altura sentado'] - 0.001663 * df['Edad_Decimal'] * df['Leg'] + 0.007216 * df['Edad_Decimal'] * df['Altura sentado'] + 0.02292 * df['Pxt']
         
         df['AltPadre_cm'] = np.where(df['Altura del padre'] < 3, df['Altura del padre'] * 100, df['Altura del padre'])
         df['AltMadre_cm'] = np.where(df['Altura de la madre'] < 3, df['Altura de la madre'] * 100, df['Altura de la madre'])
         df['Predictor_Genetico'] = ((df['AltPadre_cm'] + df['AltMadre_cm']) / 2).fillna(174.0)
+        
+        has_parents = df['AltPadre_cm'].notna() & df['AltMadre_cm'].notna()
+        moore2 = -7.999994 + 0.0036124 * (df['Edad_Decimal'] * df['Altura de Pie '])
+        moore_padres = -7.999994 + 0.0036124 * (df['Edad_Decimal'] * df['Predictor_Genetico'])
+        
+        # Replica el clamp del DAX
+        valid_mirwald = mirwald.between(-3.5, 2.5)
+        df['M.O'] = np.where(valid_mirwald, mirwald, np.where(has_parents, moore_padres, moore2))
+        
+        # Edad Biológica es la SUMA
+        df['Edad Biológica'] = df['Edad_Decimal'] + df['M.O']
+
+        df['EdadParaTabla'] = np.floor(df['Edad_Decimal'] * 2 + 0.5) / 2
+        df = pd.merge(df, df_int, left_on='EdadParaTabla', right_on='Edad_Anios', how='left')
         
         df['Altura_Adulta_Predicha'] = df['B0'] + (df['B1'] * df['Altura de Pie ']) + (df['B2'] * df['Peso']) + (df['B3'] * df['Predictor_Genetico'])
         df['% PHV'] = (df['Altura de Pie '] / df['Altura_Adulta_Predicha']) * 100
