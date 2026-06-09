@@ -5,8 +5,7 @@ import re
 import requests
 from io import BytesIO
 
-# Nueva función para descargar la imagen desde el backend burlando a Google
-@st.cache_data(ttl=3600) # Cacheamos la imagen 1 hora para que sea ultra rápido
+@st.cache_data(ttl=3600)
 def get_image_bytes(url):
     try:
         response = requests.get(url, timeout=5)
@@ -27,9 +26,27 @@ def load_data():
     try:
         df = pd.read_csv(url_datos)
         
+        # =========================================================
+        # FIX DE KHAMIS-ROCHE: Mapeo de columnas dinámico
+        # =========================================================
         try:
             df_int = pd.read_excel(url_excel, sheet_name='Interceptos', engine='openpyxl')
+            
+            # Buscar columnas por palabras clave para igualar el LOOKUPVALUE de DAX
+            col_edad = next((c for c in df_int.columns if 'Edad' in str(c)), df_int.columns[0])
+            col_b0 = next((c for c in df_int.columns if '0' in str(c) or 'Intercepto' in str(c)), df_int.columns[1])
+            col_b1 = next((c for c in df_int.columns if '1' in str(c) or 'Estatura' in str(c) or 'Talla' in str(c)), df_int.columns[2])
+            col_b2 = next((c for c in df_int.columns if '2' in str(c) or 'Peso' in str(c)), df_int.columns[3])
+            col_b3 = next((c for c in df_int.columns if '3' in str(c) or 'Padres' in str(c) or 'Media' in str(c)), df_int.columns[4])
+            
+            df_int = df_int[[col_edad, col_b0, col_b1, col_b2, col_b3]]
             df_int.columns = ['Edad_Anios', 'B0', 'B1', 'B2', 'B3']
+            
+            # Limpiar comas a puntos si vienen como texto (Español)
+            for c in ['Edad_Anios', 'B0', 'B1', 'B2', 'B3']:
+                if df_int[c].dtype == object:
+                    df_int[c] = df_int[c].astype(str).str.replace(',', '.')
+                df_int[c] = pd.to_numeric(df_int[c], errors='coerce')
         except:
             df_int = pd.DataFrame({'Edad_Anios': np.arange(10, 18, 0.5), 'B0': [-12]*16, 'B1': [0.8]*16, 'B2': [0.3]*16, 'B3': [0.4]*16})
 
@@ -47,30 +64,23 @@ def load_data():
         
         df = df.sort_values(by=['DNI', 'Fecha de Evaluacion'])
         
-        # FIX FOTO: Si la última evaluación no tiene foto, arrastra la foto de la evaluación anterior
         if 'URLFOTO' in df.columns:
             df['URLFOTO'] = df['URLFOTO'].replace(r'^\s*$', np.nan, regex=True)
             df['URLFOTO'] = df.groupby('DNI')['URLFOTO'].ffill().bfill()
 
-        # FIX URL: Extrae el ID de cualquier formato de Drive y crea un link de descarga directa
         def normalize_photo_url(url):
             if pd.isna(url) or "ahi esta" in str(url): return np.nan
             url_str = str(url).strip()
             match1 = re.search(r'/d/([a-zA-Z0-9_-]+)', url_str)
             match3 = re.search(r'id=([a-zA-Z0-9_-]+)', url_str)
             
-            file_id = None
-            if match1: file_id = match1.group(1)
-            elif match3: file_id = match3.group(1)
-            
-            if file_id:
-                return f"https://drive.google.com/uc?export=download&id={file_id}"
+            if match1: return f"https://drive.google.com/uc?export=download&id={match1.group(1)}"
+            elif match3: return f"https://drive.google.com/uc?export=download&id={match3.group(1)}"
             return url_str
 
         if 'URLFOTO' in df.columns:
             df['URLFOTO'] = df['URLFOTO'].apply(normalize_photo_url)
 
-        # Cálculos de maduración
         df['Delta_Altura_cm'] = df.groupby('DNI')['Altura de Pie '].diff()
         df['Delta_Edad_años'] = df.groupby('DNI')['Edad_Decimal'].diff()
         df['Gr.T'] = np.where(df['Delta_Edad_años'] > 0, df['Delta_Altura_cm'] / df['Delta_Edad_años'], np.nan)
@@ -80,7 +90,10 @@ def load_data():
         df['M.O'] = -9.236 + 0.0002708 * df['Leg'] * df['Altura sentado'] - 0.001663 * df['Edad_Decimal'] * df['Leg'] + 0.007216 * df['Edad_Decimal'] * df['Altura sentado'] + 0.02292 * df['Pxt']
         df['Edad PHV'] = df['Edad_Decimal'] - df['M.O']
 
-        df['EdadParaTabla'] = (df['Edad_Decimal'] * 2).round() / 2
+        # =========================================================
+        # FIX DE REDONDEO MROUND (Equivalencia DAX)
+        # =========================================================
+        df['EdadParaTabla'] = np.floor(df['Edad_Decimal'] * 2 + 0.5) / 2
         df = pd.merge(df, df_int, left_on='EdadParaTabla', right_on='Edad_Anios', how='left')
         
         df['AltPadre_cm'] = np.where(df['Altura del padre'] < 3, df['Altura del padre'] * 100, df['Altura del padre'])
