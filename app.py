@@ -14,11 +14,9 @@ st.set_page_config(page_title="Bio-Banding Institucional", page_icon="⚽", layo
 # --- CSS PREMIUM Y FUENTES AGENCY FB ---
 st.markdown("""
     <style>
-    /* Ocultar elementos nativos molestos */
     [data-testid="collapsedControl"] { display: none; }
     section[data-testid="stSidebar"] { display: none; }
     
-    /* Tipografía Global AGENCY FB */
     @import url('https://fonts.cdnfonts.com/css/agency-fb');
     html, body, [class*="css"], p, span, div, label, h1, h2, h3, h4, h5, h6, button, th, td { 
         font-family: 'Agency FB', 'Segoe UI', Roboto, Helvetica, sans-serif !important; 
@@ -26,10 +24,8 @@ st.markdown("""
     
     html, body, [class*="css"] { font-size: 20px !important; }
     
-    /* Aumentar tamaño de etiquetas de filtros */
     .stSelectbox label { font-size: 1.5rem !important; font-weight: 800 !important; color: #1A5B36 !important; letter-spacing: 1px; }
     
-    /* Estilo Premium de las Pestañas (Tabs) */
     .stTabs [data-baseweb="tab-list"] { gap: 10px; border-bottom: 3px solid #27AE60; padding-top: 15px; }
     .stTabs [data-baseweb="tab"] {
         height: 60px; background-color: #f8f9fa; border-radius: 12px 12px 0px 0px;
@@ -39,7 +35,6 @@ st.markdown("""
     .stTabs [data-baseweb="tab"]:hover { background-color: #F4D03F; color: #1A5B36; }
     .stTabs [aria-selected="true"] { background-color: #27AE60 !important; color: white !important; border-color: #27AE60 !important; }
     
-    /* Estilo Premium de las Tarjetas KPI */
     .kpi-card {
         background-color: #ffffff; border-radius: 15px; padding: 20px 20px;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); border-left: 8px solid #27AE60;
@@ -50,7 +45,6 @@ st.markdown("""
     .kpi-val { font-size: 3.5rem !important; font-weight: 900; color: #1A5B36; margin: 0; line-height: 1; }
     .kpi-label { font-size: 1.4rem !important; color: #7f8c8d; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-top: 8px; }
     
-    /* Sticky Player Banner */
     .sticky-player {
         position: fixed; top: 15px; right: 25px; background-color: rgba(255, 255, 255, 0.95);
         padding: 6px 20px 6px 6px; border-radius: 60px; box-shadow: 0 6px 20px rgba(0,0,0,0.15);
@@ -66,7 +60,6 @@ def get_base64_image(img_bytes):
     if img_bytes: return base64.b64encode(img_bytes.getvalue()).decode()
     return ""
 
-# --- CABECERA GLOBAL INSTITUCIONAL MULTINIVEL ---
 col_empty, col_title, col_logo = st.columns([1, 8, 1])
 with col_title:
     st.markdown("""
@@ -85,7 +78,6 @@ df_historico, df_latest = load_data()
 if not df_latest.empty:
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # --- FILTROS GLOBALES ---
     col_f1, col_f2, col_f3, col_f4 = st.columns([1, 1, 1, 1])
     with col_f1: fecha_sel = st.selectbox("FECHA DE EVALUACIÓN", ["Todos"] + sorted(df_latest['Mes_Año_Eval'].dropna().unique()))
     with col_f2: pos_sel = st.selectbox("POSICIÓN", ["Todos"] + sorted(df_latest['Posicion'].dropna().unique()))
@@ -148,47 +140,33 @@ if not df_latest.empty:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # --- PESTAÑAS (TABS) ---
     tab_dep, tab_perf, tab_con = st.tabs(["👥 Jugadores", "👤 Perfil Individual", "🌍 Conocimiento Global"])
 
-    # --- CONFIGURACIÓN PLOTLY & TABLAS ---
     plotly_font_config = dict(size=20, color="#333", family="Agency FB, Segoe UI, Arial")
     plotly_hover_config = dict(font_size=22, font_family="Agency FB, Segoe UI, Arial")
 
-    # FIX: Se redujo ligeramente el padding y font-size para que las columnas quepan sin scroll
-    def style_dataframe(df_styled):
-        return df_styled.set_properties(**{'font-size': '18px', 'padding': '6px 10px', 'font-family': 'Agency FB'})
-
-    # FIX: Formateador a prueba de balas para erradicar los "None" o "NaN" de las tablas
-    safe_format = {
-        'Edad': lambda x: f"{x:.2f}" if pd.notna(x) else "",
-        'Edad PHV': lambda x: f"{x:.2f}" if pd.notna(x) else "",
-        'Altura (cm)': lambda x: f"{x:.2f}" if pd.notna(x) else "",
-        'Altura Pred. (cm)': lambda x: f"{x:.2f}" if pd.notna(x) else "",
-        'Gr.T': lambda x: f"{x:.2f}" if pd.notna(x) else "",
-        'M.O': lambda x: f"{x:.2f}" if pd.notna(x) else "",
-        '% PHV': lambda x: f"{x:.2f}" if pd.notna(x) else ""
-    }
+    # FIX DE ESTRATEGIA LAYOUT: Configura el font-size de la tabla dinámicamente y fuerza el salto de línea (white-space: normal)
+    def style_dataframe(df_styled, font_size="16px"):
+        df_styled = df_styled.set_properties(**{'font-size': font_size, 'padding': '6px 8px', 'font-family': 'Agency FB'})
+        df_styled = df_styled.set_table_styles([
+            {'selector': 'th', 'props': [('font-size', font_size), ('font-family', 'Agency FB'), ('white-space', 'normal'), ('text-align', 'center')]}
+        ])
+        return df_styled
 
     # ==========================================
     # TAB 1: JUGADORES
     # ==========================================
     with tab_dep:
         st.markdown("<br>", unsafe_allow_html=True)
-        # FIX: Proporción 1.5 vs 1 para darle mucho más ancho a la tabla y evitar scroll
-        col_tabla, col_grafico = st.columns([1.5, 1])
+        # FIX: Le damos una proporción mayor a la tabla (1.6) para que quepan las columnas largas
+        col_tabla, col_grafico = st.columns([1.6, 1])
         with col_tabla:
             st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>INDICADORES CLAVES DE RENDIMIENTO</h3>", unsafe_allow_html=True)
-            # FIX: Nombres de columnas más cortos para ahorrar espacio horizontal
-            df_display = df_filtrado.rename(columns={
-                'Nombre y Apellido': 'Nombre',
-                'Edad_Decimal': 'Edad', 
-                'Altura de Pie ': 'Altura (cm)', 
-                'Altura_Adulta_Predicha': 'Altura Pred. (cm)'
-            })
-            cols_table = ['Nombre', 'Edad', 'Edad PHV', 'Altura (cm)', 'Altura Pred. (cm)', 'Gr.T', 'M.O']
-            styled_df = df_display[cols_table].style.format(safe_format)
-            st.dataframe(style_dataframe(styled_df), hide_index=True, use_container_width=True, height=500)
+            # Revertimos a los nombres completos y originales. Eliminamos na_rep="" para que salga "None" nativo
+            df_display = df_filtrado.rename(columns={'Edad_Decimal': 'Edad', 'Altura de Pie ': 'Altura Actual cm', 'Altura_Adulta_Predicha': 'Altura Adulta Predicha cm'})
+            cols_table = ['Nombre y Apellido', 'Edad', 'Edad PHV', 'Altura Actual cm', 'Altura Adulta Predicha cm', 'Gr.T', 'M.O']
+            styled_df = df_display[cols_table].style.format({'Edad': '{:.2f}', 'Edad PHV': '{:.2f}', 'Altura Actual cm': '{:.2f}', 'Altura Adulta Predicha cm': '{:.2f}', 'Gr.T': '{:.2f}', 'M.O': '{:.2f}'})
+            st.dataframe(style_dataframe(styled_df, font_size="16px"), hide_index=True, use_container_width=True, height=500)
 
         with col_grafico:
             st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>Porcentaje de Altura Adulta Predicha</h3>", unsafe_allow_html=True)
@@ -324,21 +302,27 @@ if not df_latest.empty:
         col1, col2, col3 = st.columns(3)
         with col1:
             st.markdown("<p style='text-align: center; font-weight: 800; font-size: 1.8rem; color: #1A5B36; font-family: \"Agency FB\";'>Jugadores cercanos a la altura PHV</p>", unsafe_allow_html=True)
+            # Revertimos a nombres de columnas originales y mantenemos los Nulls nativos
             df_t1 = df_filtrado[['Nombre y Apellido', 'Edad_Decimal', 'Edad PHV', 'M.O']].copy()
             df_t1['Abs_MO'] = df_t1['M.O'].abs()
-            # FIX: Nombre corto y formateo a prueba de nulos
-            styled_t1 = df_t1.sort_values('Abs_MO').head(10).drop(columns=['Abs_MO']).rename(columns={'Edad_Decimal': 'Edad', 'Nombre y Apellido': 'Nombre'}).style.map(color_mo, subset=['M.O']).format(safe_format)
-            st.dataframe(style_dataframe(styled_t1), hide_index=True, use_container_width=True)
+            df_t1_disp = df_t1.sort_values('Abs_MO').head(10).drop(columns=['Abs_MO']).rename(columns={'Edad_Decimal': 'Edad'})
+            styled_t1 = df_t1_disp.style.map(color_mo, subset=['M.O']).format({'Edad': '{:.2f}', 'Edad PHV': '{:.2f}', 'M.O': '{:.2f}'})
+            st.dataframe(style_dataframe(styled_t1, font_size="14px"), hide_index=True, use_container_width=True)
+            
         with col2:
             st.markdown("<p style='text-align: center; font-weight: 800; font-size: 1.8rem; color: #1A5B36; font-family: \"Agency FB\";'>Jugadores que todavia siguen creciendo</p>", unsafe_allow_html=True)
+            # Revertimos, incluimos todas las columnas como pediste
             df_t2 = df_filtrado[df_filtrado['M.O'] < 0][['Nombre y Apellido', 'Edad_Decimal', 'Edad PHV', '% PHV', 'M.O', 'Gr.T']].copy()
-            styled_t2 = df_t2.sort_values('% PHV').head(10).rename(columns={'Edad_Decimal': 'Edad', 'Nombre y Apellido': 'Nombre'}).style.map(color_phv, subset=['% PHV']).format(safe_format)
-            st.dataframe(style_dataframe(styled_t2), hide_index=True, use_container_width=True)
+            df_t2_disp = df_t2.sort_values('% PHV').head(10).rename(columns={'Edad_Decimal': 'Edad'})
+            styled_t2 = df_t2_disp.style.map(color_phv, subset=['% PHV']).format({'Edad': '{:.2f}', 'Edad PHV': '{:.2f}', '% PHV': '{:.2f}', 'M.O': '{:.2f}', 'Gr.T': '{:.2f}'})
+            st.dataframe(style_dataframe(styled_t2, font_size="14px"), hide_index=True, use_container_width=True)
+            
         with col3:
             st.markdown("<p style='text-align: center; font-weight: 800; font-size: 1.8rem; color: #1A5B36; font-family: \"Agency FB\";'>Mas altas de Crecimiento</p>", unsafe_allow_html=True)
             df_t3 = df_filtrado[['Nombre y Apellido', 'Edad_Decimal', 'M.O', 'Gr.T']].copy()
-            styled_t3 = df_t3.sort_values('Gr.T', ascending=False).head(10).rename(columns={'Edad_Decimal': 'Edad', 'Nombre y Apellido': 'Nombre'}).style.map(color_gt, subset=['Gr.T']).format(safe_format)
-            st.dataframe(style_dataframe(styled_t3), hide_index=True, use_container_width=True)
+            df_t3_disp = df_t3.sort_values('Gr.T', ascending=False).head(10).rename(columns={'Edad_Decimal': 'Edad'})
+            styled_t3 = df_t3_disp.style.map(color_gt, subset=['Gr.T']).format({'Edad': '{:.2f}', 'M.O': '{:.2f}', 'Gr.T': '{:.2f}'})
+            st.dataframe(style_dataframe(styled_t3, font_size="14px"), hide_index=True, use_container_width=True)
 
         st.markdown("<h3 style='text-align: center; color: #1A5B36; margin-top: 40px; font-weight: 800; font-size: 2.2rem;'>Análisis Global de Desarrollo</h3>", unsafe_allow_html=True)
         df_plot2 = df_filtrado.dropna(subset=['M.O'])
