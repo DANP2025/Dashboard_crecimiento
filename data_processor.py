@@ -15,39 +15,42 @@ def get_image_bytes(url):
     except:
         return None
 
+# FIX: Renombramos a v3 para destruir la caché corrupta de Streamlit
 @st.cache_data(ttl=60)
-def load_data():
+def load_data_v3():
     SHEET_ID = "1FVuYJtctdiwUzsptZOGOZcr7vXe1CMqR4f360kulYME"
     GID_DATOS = "1766718688"
     
     url_datos = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID_DATOS}"
-    url_excel = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx"
+    # FIX: Exportación CSV nativa para evitar fallos de lectura de hojas de Excel
+    url_interceptos = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Interceptos"
     
     try:
         df = pd.read_csv(url_datos)
         
         # =========================================================
-        # FIX DE KHAMIS-ROCHE: Mapeo de columnas dinámico
+        # MAPEO DINÁMICO DE KHAMIS-ROCHE
         # =========================================================
         try:
-            df_int = pd.read_excel(url_excel, sheet_name='Interceptos', engine='openpyxl')
+            df_int = pd.read_csv(url_interceptos)
+            cols = df_int.columns.astype(str).str.lower()
             
-            # Buscar columnas por palabras clave para igualar el LOOKUPVALUE de DAX
-            col_edad = next((c for c in df_int.columns if 'Edad' in str(c)), df_int.columns[0])
-            col_b0 = next((c for c in df_int.columns if '0' in str(c) or 'Intercepto' in str(c)), df_int.columns[1])
-            col_b1 = next((c for c in df_int.columns if '1' in str(c) or 'Estatura' in str(c) or 'Talla' in str(c)), df_int.columns[2])
-            col_b2 = next((c for c in df_int.columns if '2' in str(c) or 'Peso' in str(c)), df_int.columns[3])
-            col_b3 = next((c for c in df_int.columns if '3' in str(c) or 'Padres' in str(c) or 'Media' in str(c)), df_int.columns[4])
+            # Búsqueda dinámica ultra-robusta
+            col_edad = df_int.columns[cols.str.contains('edad')][0] if any(cols.str.contains('edad')) else df_int.columns[0]
+            col_b0 = df_int.columns[cols.str.contains('0') | cols.str.contains('intercept')][0] if any(cols.str.contains('0') | cols.str.contains('intercept')) else df_int.columns[1]
+            col_b1 = df_int.columns[cols.str.contains('1') | cols.str.contains('estatura') | cols.str.contains('talla')][0] if any(cols.str.contains('1') | cols.str.contains('estatura') | cols.str.contains('talla')) else df_int.columns[2]
+            col_b2 = df_int.columns[cols.str.contains('2') | cols.str.contains('peso')][0] if any(cols.str.contains('2') | cols.str.contains('peso')) else df_int.columns[3]
+            col_b3 = df_int.columns[cols.str.contains('3') | cols.str.contains('padres') | cols.str.contains('media')][0] if any(cols.str.contains('3') | cols.str.contains('padres') | cols.str.contains('media')) else df_int.columns[4]
             
-            df_int = df_int[[col_edad, col_b0, col_b1, col_b2, col_b3]]
+            df_int = df_int[[col_edad, col_b0, col_b1, col_b2, col_b3]].copy()
             df_int.columns = ['Edad_Anios', 'B0', 'B1', 'B2', 'B3']
             
-            # Limpiar comas a puntos si vienen como texto (Español)
-            for c in ['Edad_Anios', 'B0', 'B1', 'B2', 'B3']:
+            for c in df_int.columns:
                 if df_int[c].dtype == object:
                     df_int[c] = df_int[c].astype(str).str.replace(',', '.')
                 df_int[c] = pd.to_numeric(df_int[c], errors='coerce')
-        except:
+        except Exception as e:
+            st.error(f"Error leyendo 'Interceptos': {e}")
             df_int = pd.DataFrame({'Edad_Anios': np.arange(10, 18, 0.5), 'B0': [-12]*16, 'B1': [0.8]*16, 'B2': [0.3]*16, 'B3': [0.4]*16})
 
         cols_limpiar = ['Altura de Pie ', 'Altura sentado', 'Peso', 'Altura del padre', 'Altura de la madre']
@@ -91,7 +94,7 @@ def load_data():
         df['Edad PHV'] = df['Edad_Decimal'] - df['M.O']
 
         # =========================================================
-        # FIX DE REDONDEO MROUND (Equivalencia DAX)
+        # MATEMÁTICA EXACTA DE MROUND Y PREDICTOR GENÉTICO
         # =========================================================
         df['EdadParaTabla'] = np.floor(df['Edad_Decimal'] * 2 + 0.5) / 2
         df = pd.merge(df, df_int, left_on='EdadParaTabla', right_on='Edad_Anios', how='left')
@@ -120,5 +123,5 @@ def load_data():
         if "401" in str(e):
             st.error("🔒 **Error 401: El archivo Google Sheet es privado.**")
         else:
-            st.error(f"Error: {e}")
+            st.error(f"Error general: {e}")
         return pd.DataFrame(), pd.DataFrame()
