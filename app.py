@@ -87,20 +87,20 @@ if not df_latest.empty:
     
     # --- FILTROS GLOBALES ---
     col_f1, col_f2, col_f3, col_f4 = st.columns([1, 1, 1, 1])
-    with col_f1: fecha_sel = st.selectbox("FECHA DE EVALUACIÓN", ["Todas"] + list(df_latest['Mes_Año_Eval'].dropna().unique()))
-    with col_f2: pos_sel = st.selectbox("POSICIÓN", ["Todas"] + list(df_latest['Posicion'].dropna().unique()))
-    with col_f3: cat_sel = st.selectbox("CATEGORÍA", ["Todas"] + list(df_latest['Categoria'].dropna().unique()))
-    with col_f4: jug_sel = st.selectbox("JUGADOR", ["Todas"] + list(df_latest['Nombre y Apellido'].dropna().sort_values().unique()))
+    with col_f1: fecha_sel = st.selectbox("FECHA DE EVALUACIÓN", ["Todos"] + sorted(df_latest['Mes_Año_Eval'].dropna().unique()))
+    with col_f2: pos_sel = st.selectbox("POSICIÓN", ["Todos"] + sorted(df_latest['Posicion'].dropna().unique()))
+    with col_f3: cat_sel = st.selectbox("CATEGORÍA", ["Todos"] + sorted(df_latest['Categoria'].dropna().unique()))
+    with col_f4: jug_sel = st.selectbox("JUGADOR", ["Todos"] + sorted(df_latest['Nombre y Apellido'].dropna().unique()))
 
     df_filtrado = df_latest.copy()
-    if fecha_sel != "Todas": df_filtrado = df_filtrado[df_filtrado['Mes_Año_Eval'] == fecha_sel]
-    if pos_sel != "Todas": df_filtrado = df_filtrado[df_filtrado['Posicion'] == pos_sel]
-    if cat_sel != "Todas": df_filtrado = df_filtrado[df_filtrado['Categoria'] == cat_sel]
-    if jug_sel != "Todas": df_filtrado = df_filtrado[df_filtrado['Nombre y Apellido'] == jug_sel]
+    if fecha_sel != "Todos": df_filtrado = df_filtrado[df_filtrado['Mes_Año_Eval'] == fecha_sel]
+    if pos_sel != "Todos": df_filtrado = df_filtrado[df_filtrado['Posicion'] == pos_sel]
+    if cat_sel != "Todos": df_filtrado = df_filtrado[df_filtrado['Categoria'] == cat_sel]
+    if jug_sel != "Todos": df_filtrado = df_filtrado[df_filtrado['Nombre y Apellido'] == jug_sel]
 
     data_jug = pd.DataFrame()
 
-    if jug_sel != "Todas":
+    if jug_sel != "Todos":
         data_jug = df_filtrado[df_filtrado['Nombre y Apellido'] == jug_sel]
         if not data_jug.empty:
             img_bytes = None
@@ -216,7 +216,7 @@ if not df_latest.empty:
             grt = np.nan 
 
         color_phv_gauge = "#27AE60"
-        if jug_sel != "Todas":
+        if jug_sel != "Todos":
             if v_phv < 85: color_phv_gauge = "#2ECC71"
             elif v_phv < 88: color_phv_gauge = "#F1C40F"
             elif v_phv <= 92: color_phv_gauge = "#E67E22" 
@@ -239,8 +239,8 @@ if not df_latest.empty:
 
         with col_right:
             g1, g2 = st.columns(2)
-            font_color_1 = "white" if jug_sel == "Todas" else "#1A5B36"
-            font_color_2 = "white" if (jug_sel == "Todas" or pd.isna(grt)) else "#1A5B36"
+            font_color_1 = "white" if jug_sel == "Todos" else "#1A5B36"
+            font_color_2 = "white" if (jug_sel == "Todos" or pd.isna(grt)) else "#1A5B36"
 
             with g1:
                 fig1 = go.Figure(go.Indicator(
@@ -254,7 +254,7 @@ if not df_latest.empty:
                 st.plotly_chart(fig1, use_container_width=True)
                 
             with g2:
-                color_aguja = "rgba(0,0,0,0)" if pd.isna(grt) or jug_sel == "Todas" else "#1A5B36"
+                color_aguja = "rgba(0,0,0,0)" if pd.isna(grt) or jug_sel == "Todos" else "#1A5B36"
                 fig2 = go.Figure(go.Indicator(
                     mode="gauge+number", value=v_grt, 
                     number={'font': {'size': 60, 'color': font_color_2, 'family': 'Agency FB'}, 'valueformat': '.2f'}, 
@@ -267,7 +267,7 @@ if not df_latest.empty:
 
         st.markdown("<h3 style='text-align: center; color: #1A5B36; margin-top: 30px; font-weight: 800; font-size: 2.2rem;'>Crecimiento de acuerdo a la edad decimal</h3>", unsafe_allow_html=True)
         df_hist_plot = df_historico.dropna(subset=['Edad_Decimal', 'Altura de Pie ']).copy()
-        if jug_sel != "Todas": df_hist_plot = df_hist_plot[df_hist_plot['Nombre y Apellido'] == jug_sel]
+        if jug_sel != "Todos": df_hist_plot = df_hist_plot[df_hist_plot['Nombre y Apellido'] == jug_sel]
 
         df_hist_plot['Etapa'] = np.where(df_hist_plot['M.O'] >= 0, 'Normal', 'Tardía')
         fig3 = px.scatter(df_hist_plot, x='Edad_Decimal', y='Altura de Pie ', color='Etapa', color_discrete_map={'Normal': '#1E3A8A', 'Tardía': '#60A5FA'}, hover_name='Nombre y Apellido', labels={'Edad_Decimal': 'Edad Decimal (Años)', 'Altura de Pie ': 'Altura (cm)'})
@@ -329,7 +329,7 @@ if not df_latest.empty:
             fig_c.update_traces(marker=dict(size=16, color='#95A5A6', line=dict(width=1, color='white')))
             fig_c.add_hline(y=7, line_dash="dash", line_color="#E74C3C", line_width=2)
             fig_c.add_vline(x=0, line_dash="dash", line_color="#E74C3C", line_width=2)
-            if jug_sel != "Todas" and not data_jug.empty: fig_c.add_scatter(x=data_jug['M.O'], y=data_jug['Gr.T'], mode='markers', marker=dict(size=25, color='#F1C40F', symbol='star', line=dict(width=2, color='black')), name=jug_sel)
+            if jug_sel != "Todos" and not data_jug.empty: fig_c.add_scatter(x=data_jug['M.O'], y=data_jug['Gr.T'], mode='markers', marker=dict(size=25, color='#F1C40F', symbol='star', line=dict(width=2, color='black')), name=jug_sel)
             fig_c.update_layout(xaxis_range=[-3, 3], yaxis_range=[0, 20], plot_bgcolor='white', height=550, font=plotly_font_config, hoverlabel=plotly_hover_config)
             fig_c.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_font=dict(size=20, weight='bold'))
             fig_c.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_font=dict(size=20, weight='bold'))
