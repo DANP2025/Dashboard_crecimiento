@@ -1,3 +1,16 @@
+import sys
+import subprocess
+import os
+import urllib.request
+
+try:
+    import kaleido
+except ImportError:
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "kaleido==0.1.0.post1"])
+    except:
+        pass
+
 from fpdf import FPDF
 from io import BytesIO
 import requests
@@ -10,12 +23,22 @@ import streamlit as st
 import time
 import gc
 
-# =========================================================
-# FIX VITAL PARA KALEIDO 0.2.1 EN LINUX (Evita que se congele)
-# =========================================================
+# Descarga de fuente (Teko) como alternativa idéntica a Agency FB para el PDF
+if not os.path.exists("Agency.ttf"):
+    try:
+        urllib.request.urlretrieve("https://github.com/google/fonts/raw/main/ofl/teko/Teko-Medium.ttf", "Agency.ttf")
+    except:
+        pass
+
 try:
     pio.kaleido.scope.mathjax = None
-except:
+    current_args = list(pio.kaleido.scope.chromium_args)
+    flags = ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--single-process", "--disable-software-rasterizer"]
+    for flag in flags:
+        if flag not in current_args:
+            current_args.append(flag)
+    pio.kaleido.scope.chromium_args = tuple(current_args)
+except Exception:
     pass
 
 def safe_render_fig(fig):
@@ -27,11 +50,18 @@ def safe_render_fig(fig):
             return fig.to_image(format="png", engine="kaleido", scale=1.5)
         except Exception as e:
             last_error = str(e)
-            time.sleep(1.0)
+            time.sleep(1.5)
     raise Exception(f"Kaleido Error: {last_error}")
 
 def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     pdf = FPDF(orientation="P", unit="mm", format="A4")
+    
+    # Configuración de fuente dinámica
+    if os.path.exists("Agency.ttf"):
+        pdf.add_font("Agency", "", "Agency.ttf", uni=True)
+        font_name = "Agency"
+    else:
+        font_name = "Arial"
     
     def add_page_header(title):
         pdf.add_page()
@@ -39,10 +69,10 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
             pdf.image("logo.jpeg", x=175, y=10, w=25)
         except:
             pass
-        pdf.set_font("Arial", "B", 22)
-        pdf.set_text_color(26, 91, 54) # Verde Institucional DyJ
+        pdf.set_font(font_name, "", 26)
+        pdf.set_text_color(26, 91, 54)
         pdf.cell(0, 15, "Reporte Bio-Banding", ln=True, align="L")
-        pdf.set_font("Arial", "B", 16)
+        pdf.set_font(font_name, "", 20)
         pdf.set_text_color(100, 100, 100)
         pdf.cell(0, 10, title, ln=True, align="L")
         pdf.ln(5)
@@ -82,11 +112,11 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         pdf.set_draw_color(39, 174, 96) 
         pdf.cell(55, 18, "", border=1, fill=True)
         pdf.set_xy(x, y+2)
-        pdf.set_font("Arial", "B", 16)
+        pdf.set_font(font_name, "", 22)
         pdf.set_text_color(0,0,0)
         pdf.cell(55, 8, str(value), align="C")
         pdf.set_xy(x, y+10)
-        pdf.set_font("Arial", "B", 9)
+        pdf.set_font(font_name, "", 14)
         pdf.set_text_color(100, 100, 100)
         pdf.cell(55, 8, label, align="C")
         pdf.set_text_color(0, 0, 0)
@@ -98,10 +128,11 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     draw_kpi(77.5, 103, "PESO (KG)", v_peso)
     draw_kpi(140, 103, "RITMO (CM/AÑO)", v_ritmo)
 
+    # Sincronización de textos de títulos con la web
     color_phv = "#E74C3C" if v_phv >= 92 else ("#E67E22" if v_phv >= 88 else "#2ECC71")
     fig_g = go.Figure()
-    fig_g.add_trace(go.Indicator(mode="gauge+number", value=v_phv, domain={'x': [0, 0.45], 'y': [0, 1]}, title={'text': "% Madurez", 'font': {'size': 24}}, gauge={'axis': {'range': [80, 100]}, 'bar': {'color': color_phv}}))
-    fig_g.add_trace(go.Indicator(mode="gauge+number", value=v_grt, domain={'x': [0.55, 1], 'y': [0, 1]}, title={'text': "Tasa Crecimiento", 'font': {'size': 24}}, gauge={'axis': {'range': [0, 15]}, 'bar': {'color': "black"}, 'steps': [{'range': [0, 5], 'color': "#2ECC71"}, {'range': [5, 10], 'color': "#F1C40F"}, {'range': [10, 15], 'color': "#E74C3C"}]}))
+    fig_g.add_trace(go.Indicator(mode="gauge+number", value=v_phv, domain={'x': [0, 0.45], 'y': [0, 1]}, title={'text': "Porcentaje de Madurez %", 'font': {'size': 24, 'family': 'Agency FB'}}, gauge={'axis': {'range': [80, 100]}, 'bar': {'color': color_phv}}))
+    fig_g.add_trace(go.Indicator(mode="gauge+number", value=v_grt, domain={'x': [0.55, 1], 'y': [0, 1]}, title={'text': "Tasa de crecimiento (cm/año)", 'font': {'size': 24, 'family': 'Agency FB'}}, gauge={'axis': {'range': [0, 15]}, 'bar': {'color': "black"}, 'steps': [{'range': [0, 5], 'color': "#2ECC71"}, {'range': [5, 10], 'color': "#F1C40F"}, {'range': [10, 15], 'color': "#E74C3C"}]}))
     fig_g.update_layout(width=900, height=300, margin=dict(l=60, r=60, t=50, b=30))
     
     try:
@@ -117,7 +148,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     if not df_hist_plot.empty:
         fig_hist = px.scatter(df_hist_plot, x='Edad_Decimal', y='Altura de Pie ', title="Crecimiento vs Edad Decimal")
         fig_hist.update_traces(marker=dict(size=20, color='#1E3A8A'))
-        fig_hist.update_layout(width=960, height=400, title_x=0.5, plot_bgcolor='white', margin=dict(l=60, r=50, t=50, b=60), font=dict(size=16))
+        fig_hist.update_layout(width=960, height=400, title_x=0.5, plot_bgcolor='white', margin=dict(l=60, r=50, t=50, b=60), font=dict(size=16, family='Agency FB'))
         fig_hist.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title="Edad Decimal")
         fig_hist.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Altura de Pie (cm)")
         
@@ -136,7 +167,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     add_page_header("Resumen Global de Jugadores")
     
     pdf.set_y(32)
-    pdf.set_font("Arial", "B", 10)
+    pdf.set_font(font_name, "", 14)
     pdf.set_text_color(26, 91, 54)
     pdf.cell(60, 6, "Cercanos a PHV", border=0, align="C")
     pdf.cell(5, 6, "", border=0)
@@ -144,7 +175,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     pdf.cell(5, 6, "", border=0)
     pdf.cell(60, 6, "Más altas Crecimiento", border=0, ln=True, align="C")
     
-    pdf.set_font("Arial", "B", 8)
+    pdf.set_font(font_name, "", 12)
     pdf.set_fill_color(240, 240, 240)
     pdf.set_text_color(0,0,0)
     
@@ -158,7 +189,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     pdf.cell(15, 6, "Cm/Año", border=1, align="C", fill=True)
     pdf.ln()
 
-    pdf.set_font("Arial", "", 8)
+    pdf.set_font(font_name, "", 12)
     df_t1 = df_filtrado.copy()
     df_t1['Abs_MO'] = df_t1['M.O'].abs()
     top_phv = df_t1.sort_values('Abs_MO').head(10)[['Nombre y Apellido', 'M.O']]
@@ -189,7 +220,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         fig_g1.update_traces(marker=dict(size=16, color='#3498DB', line=dict(width=1, color='white')))
         fig_g1.add_hline(y=7, line_dash="dash", line_color="#E74C3C", line_width=2)
         fig_g1.add_vline(x=0, line_dash="dash", line_color="#E74C3C", line_width=2)
-        fig_g1.update_layout(width=960, height=480, title_x=0.5, plot_bgcolor='white', margin=dict(l=60, r=50, t=50, b=60), font=dict(size=16), xaxis_range=[-3, 3], yaxis_range=[0, 20])
+        fig_g1.update_layout(width=960, height=480, title_x=0.5, plot_bgcolor='white', margin=dict(l=60, r=50, t=50, b=60), font=dict(size=16, family='Agency FB'), xaxis_range=[-3, 3], yaxis_range=[0, 20])
         fig_g1.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title="Distancia al inicio de maduración (M.O)")
         fig_g1.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Crecimiento (cm/año)")
         
@@ -212,7 +243,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         fig_b = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', title="Porcentaje de Altura Adulta Predicha")
         fig_b.update_traces(marker_color='#BDC3C7', texttemplate='%{y:.1f}%', textposition='outside')
         fig_b.add_hline(y=90, line_dash="dash", line_color="#E74C3C", line_width=2)
-        fig_b.update_layout(width=960, height=400, title_x=0.5, plot_bgcolor='white', yaxis_range=[60, 105], margin=dict(l=60, r=50, t=50, b=80), font=dict(size=16))
+        fig_b.update_layout(width=960, height=400, title_x=0.5, plot_bgcolor='white', yaxis_range=[60, 105], margin=dict(l=60, r=50, t=50, b=80), font=dict(size=16, family='Agency FB'))
         
         try:
             img_b_bytes = safe_render_fig(fig_b)
@@ -230,7 +261,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         fig_c.add_vline(x=0, line_dash="dash", line_color="#E74C3C", line_width=2)
         if not data_jug.empty:
             fig_c.add_scatter(x=data_jug['M.O'], y=data_jug['Gr.T'], mode='markers', marker=dict(size=24, color='#F1C40F', symbol='star', line=dict(width=2, color='black')), name=jug_sel)
-        fig_c.update_layout(width=960, height=480, title_x=0.5, plot_bgcolor='white', xaxis_range=[-3, 3], yaxis_range=[0, 20], margin=dict(l=60, r=50, t=50, b=60), font=dict(size=16))
+        fig_c.update_layout(width=960, height=480, title_x=0.5, plot_bgcolor='white', xaxis_range=[-3, 3], yaxis_range=[0, 20], margin=dict(l=60, r=50, t=50, b=60), font=dict(size=16, family='Agency FB'))
         fig_c.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title="Distancia al inicio de maduración (M.O)")
         fig_c.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Crecimiento (cm/año)")
         

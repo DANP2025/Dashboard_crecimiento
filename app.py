@@ -66,8 +66,7 @@ def get_base64_image(img_bytes):
     if img_bytes: return base64.b64encode(img_bytes.getvalue()).decode()
     return ""
 
-# --- CABECERA GLOBAL INSTITUCIONAL MULTINÍVEL ---
-# Ajustamos las columnas a [1, 8, 1] para que el título quede perfectamente centrado
+# --- CABECERA GLOBAL INSTITUCIONAL MULTINIVEL ---
 col_empty, col_title, col_logo = st.columns([1, 8, 1])
 with col_title:
     st.markdown("""
@@ -128,10 +127,16 @@ if not df_latest.empty:
                 st.session_state['pdf_ready'] = False
                 st.session_state['pdf_bytes'] = None
 
-            c1, c2, c3 = st.columns([2, 1.5, 2])
+            # --- RENDERIZADO DE FOTO PRINCIPAL CENTRADA Y MÁS GRANDE ---
+            c1, c2, c3 = st.columns([1.5, 2, 1.5])
             with c2:
                 if img_bytes:
-                    st.image(img_bytes, width=110)
+                    b64_img_main = get_base64_image(img_bytes)
+                    st.markdown(f"""
+                    <div style="display: flex; justify-content: center; margin-bottom: 20px;">
+                        <img src="data:image/jpeg;base64,{b64_img_main}" style="width: 170px; height: 170px; object-fit: cover; border-radius: 15px; border: 3px solid #27AE60; box-shadow: 0 6px 15px rgba(0,0,0,0.15);">
+                    </div>
+                    """, unsafe_allow_html=True)
                 
                 if not st.session_state['pdf_ready']:
                     if st.button("⚙️ Generar reporte", use_container_width=True):
