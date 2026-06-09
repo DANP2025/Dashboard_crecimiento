@@ -15,14 +15,13 @@ def get_image_bytes(url):
     except:
         return None
 
-# FIX: Renombramos a v3 para destruir la caché corrupta de Streamlit
+# FIX: v4 para invalidar caché y aplicar la corrección de fechas
 @st.cache_data(ttl=60)
-def load_data_v3():
+def load_data_v4():
     SHEET_ID = "1FVuYJtctdiwUzsptZOGOZcr7vXe1CMqR4f360kulYME"
     GID_DATOS = "1766718688"
     
     url_datos = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID_DATOS}"
-    # FIX: Exportación CSV nativa para evitar fallos de lectura de hojas de Excel
     url_interceptos = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Interceptos"
     
     try:
@@ -35,7 +34,6 @@ def load_data_v3():
             df_int = pd.read_csv(url_interceptos)
             cols = df_int.columns.astype(str).str.lower()
             
-            # Búsqueda dinámica ultra-robusta
             col_edad = df_int.columns[cols.str.contains('edad')][0] if any(cols.str.contains('edad')) else df_int.columns[0]
             col_b0 = df_int.columns[cols.str.contains('0') | cols.str.contains('intercept')][0] if any(cols.str.contains('0') | cols.str.contains('intercept')) else df_int.columns[1]
             col_b1 = df_int.columns[cols.str.contains('1') | cols.str.contains('estatura') | cols.str.contains('talla')][0] if any(cols.str.contains('1') | cols.str.contains('estatura') | cols.str.contains('talla')) else df_int.columns[2]
@@ -50,7 +48,6 @@ def load_data_v3():
                     df_int[c] = df_int[c].astype(str).str.replace(',', '.')
                 df_int[c] = pd.to_numeric(df_int[c], errors='coerce')
         except Exception as e:
-            st.error(f"Error leyendo 'Interceptos': {e}")
             df_int = pd.DataFrame({'Edad_Anios': np.arange(10, 18, 0.5), 'B0': [-12]*16, 'B1': [0.8]*16, 'B2': [0.3]*16, 'B3': [0.4]*16})
 
         cols_limpiar = ['Altura de Pie ', 'Altura sentado', 'Peso', 'Altura del padre', 'Altura de la madre']
@@ -59,8 +56,11 @@ def load_data_v3():
                 df[col] = df[col].astype(str).str.replace(',', '.').str.replace(r'[^0-9.-]', '', regex=True)
                 df[col] = pd.to_numeric(df[col], errors='coerce')
 
-        df['Fecha de Nacimiento'] = pd.to_datetime(df['Fecha de Nacimiento'], format='mixed', errors='coerce')
-        df['Fecha de Evaluacion'] = pd.to_datetime(df['Fecha de Evaluacion'], format='mixed', errors='coerce')
+        # =========================================================
+        # FIX CRÍTICO DE ZONA/LOCALE: FORZAR FORMATO LATINO (DD/MM/YYYY)
+        # =========================================================
+        df['Fecha de Nacimiento'] = pd.to_datetime(df['Fecha de Nacimiento'], format='mixed', dayfirst=True, errors='coerce')
+        df['Fecha de Evaluacion'] = pd.to_datetime(df['Fecha de Evaluacion'], format='mixed', dayfirst=True, errors='coerce')
         
         df['Mes_Año_Eval'] = df['Fecha de Evaluacion'].dt.strftime('%B %Y')
         df['Edad_Decimal'] = (df['Fecha de Evaluacion'] - df['Fecha de Nacimiento']).dt.days / 365.25
@@ -76,7 +76,6 @@ def load_data_v3():
             url_str = str(url).strip()
             match1 = re.search(r'/d/([a-zA-Z0-9_-]+)', url_str)
             match3 = re.search(r'id=([a-zA-Z0-9_-]+)', url_str)
-            
             if match1: return f"https://drive.google.com/uc?export=download&id={match1.group(1)}"
             elif match3: return f"https://drive.google.com/uc?export=download&id={match3.group(1)}"
             return url_str
@@ -93,9 +92,6 @@ def load_data_v3():
         df['M.O'] = -9.236 + 0.0002708 * df['Leg'] * df['Altura sentado'] - 0.001663 * df['Edad_Decimal'] * df['Leg'] + 0.007216 * df['Edad_Decimal'] * df['Altura sentado'] + 0.02292 * df['Pxt']
         df['Edad PHV'] = df['Edad_Decimal'] - df['M.O']
 
-        # =========================================================
-        # MATEMÁTICA EXACTA DE MROUND Y PREDICTOR GENÉTICO
-        # =========================================================
         df['EdadParaTabla'] = np.floor(df['Edad_Decimal'] * 2 + 0.5) / 2
         df = pd.merge(df, df_int, left_on='EdadParaTabla', right_on='Edad_Anios', how='left')
         
@@ -120,8 +116,4 @@ def load_data_v3():
         return df, df_latest
 
     except Exception as e:
-        if "401" in str(e):
-            st.error("🔒 **Error 401: El archivo Google Sheet es privado.**")
-        else:
-            st.error(f"Error general: {e}")
         return pd.DataFrame(), pd.DataFrame()
