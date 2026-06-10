@@ -75,6 +75,9 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         pdf.cell(0, 10, title, ln=True, align="L")
         pdf.ln(5)
 
+    # =========================================================
+    # PÁGINA 1: PERFIL INDIVIDUAL
+    # =========================================================
     add_page_header(f"Perfil Individual: {jug_sel}")
     
     url_foto = data_jug['URLFOTO'].values[0] if 'URLFOTO' in data_jug.columns and not data_jug.empty else None
@@ -155,9 +158,12 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
             pdf.set_text_color(255, 0, 0)
             pdf.multi_cell(190, 5, f"Error Scatter 1: {str(e)}", align="C")
 
+    # =========================================================
+    # PÁGINA 2: JUGADORES
+    # =========================================================
     add_page_header("Resumen Global de Jugadores")
     
-    # FIX: Aumentamos el margen superior para evitar solapamiento con el header
+    # FIX VITAL: Bajamos fuertemente el offset en Y a 50mm para que no se pisen
     pdf.set_y(50)
     pdf.set_font(font_name, "", 14)
     pdf.set_text_color(26, 91, 54)
@@ -218,16 +224,20 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         
         try:
             img_g1_bytes = safe_render_fig(fig_g1)
-            # FIX: Aumentamos la posición Y para evitar solapamiento con el header
-            pdf.image(BytesIO(img_g1_bytes), x=10, y=50, w=190)
+            pdf.image(BytesIO(img_g1_bytes), x=10, y=120, w=190)
         except Exception as e:
             pdf.set_xy(10, 130)
             pdf.set_font("Arial", "I", 8)
             pdf.set_text_color(255, 0, 0)
             pdf.multi_cell(190, 5, f"Error Scatter 2: {str(e)}", align="C")
 
+    # =========================================================
+    # PÁGINA 3: CONOCIMIENTO GLOBAL
+    # =========================================================
     add_page_header("Conocimiento Global")
     
+    # FIX: Empujamos todo el bloque hacia abajo (Y=50)
+    pdf.set_y(50)
     df_bar = df_filtrado.dropna(subset=['% PHV']).sort_values('% PHV', ascending=False)
     if not df_bar.empty:
         fig_b = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', title="Porcentaje de Altura Adulta Predicha")
@@ -237,7 +247,6 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         
         try:
             img_b_bytes = safe_render_fig(fig_b)
-            # FIX: Aumentamos la posición Y para evitar solapamiento con el header
             pdf.image(BytesIO(img_b_bytes), x=10, y=50, w=190)
         except Exception as e:
             pdf.set_xy(10, 60)
@@ -258,10 +267,9 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         
         try:
             img_c_bytes = safe_render_fig(fig_c)
-            # FIX: Aumentamos la posición Y para evitar solapamiento con el header y el gráfico anterior
             pdf.image(BytesIO(img_c_bytes), x=10, y=145, w=190)
         except Exception as e:
-            pdf.set_xy(10, 165)
+            pdf.set_xy(10, 160)
             pdf.set_font("Arial", "I", 8)
             pdf.set_text_color(255, 0, 0)
             pdf.multi_cell(190, 5, f"Error Scatter 3: {str(e)}", align="C")
