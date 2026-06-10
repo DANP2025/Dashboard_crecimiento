@@ -119,18 +119,17 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         pdf.cell(55, 8, label, align="C")
         pdf.set_text_color(0, 0, 0)
 
-    draw_kpi(15, 80, "EDAD", v_edad)
-    draw_kpi(77.5, 80, "EDAD BIOLOGICA", v_edad_bio)
-    draw_kpi(140, 80, "MADURACION", v_etapa)
-    draw_kpi(15, 103, "ALTURA (CM)", v_alt)
-    draw_kpi(77.5, 103, "PESO (KG)", v_peso)
-    draw_kpi(140, 103, "RITMO (CM/AÑO)", v_ritmo)
+    draw_kpi(15, 80, "EDAD CRONOLÓGICA", v_edad)
+    draw_kpi(77.5, 80, "EDAD BIOLÓGICA", v_edad_bio)
+    draw_kpi(140, 80, "RITMO MADURATIVO", v_etapa)
+    draw_kpi(15, 103, "TALLA (CM)", v_alt)
+    draw_kpi(77.5, 103, "MASA CORPORAL", v_peso)
+    draw_kpi(140, 103, "VELOCIDAD DE CRECIMIENTO (Δ CM/AÑO)", v_ritmo)
 
-    # FIX COLORES GAUGE PDF: Regla estricta <85, <95, >=95
     color_phv = "#2ECC71" if v_phv < 85 else ("#F1C40F" if v_phv < 95 else "#E74C3C")
     fig_g = go.Figure()
-    fig_g.add_trace(go.Indicator(mode="gauge+number", value=v_phv, domain={'x': [0, 0.45], 'y': [0, 1]}, title={'text': "Porcentaje de Madurez %", 'font': {'size': 24, 'family': 'Agency FB'}}, gauge={'axis': {'range': [80, 100]}, 'bar': {'color': color_phv}}))
-    fig_g.add_trace(go.Indicator(mode="gauge+number", value=v_grt, domain={'x': [0.55, 1], 'y': [0, 1]}, title={'text': "Tasa de crecimiento (cm/año)", 'font': {'size': 24, 'family': 'Agency FB'}}, gauge={'axis': {'range': [0, 15]}, 'bar': {'color': "black"}, 'steps': [{'range': [0, 5], 'color': "#2ECC71"}, {'range': [5, 10], 'color': "#F1C40F"}, {'range': [10, 15], 'color': "#E74C3C"}]}))
+    fig_g.add_trace(go.Indicator(mode="gauge+number", value=v_phv, domain={'x': [0, 0.45], 'y': [0, 1]}, title={'text': "Estatus Madurativo (%PAH)", 'font': {'size': 24, 'family': 'Agency FB'}}, gauge={'axis': {'range': [80, 100]}, 'bar': {'color': color_phv}}))
+    fig_g.add_trace(go.Indicator(mode="gauge+number", value=v_grt, domain={'x': [0.55, 1], 'y': [0, 1]}, title={'text': "Velocidad de Crecimiento (Δ cm/año)", 'font': {'size': 24, 'family': 'Agency FB'}}, gauge={'axis': {'range': [0, 15]}, 'bar': {'color': "black"}, 'steps': [{'range': [0, 5], 'color': "#2ECC71"}, {'range': [5, 10], 'color': "#F1C40F"}, {'range': [10, 15], 'color': "#E74C3C"}]}))
     fig_g.update_layout(width=900, height=300, margin=dict(l=60, r=60, t=50, b=30))
     
     try:
@@ -140,11 +139,11 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
 
     df_hist_plot = df_historico[df_historico['Nombre y Apellido'] == jug_sel]
     if not df_hist_plot.empty:
-        fig_hist = px.scatter(df_hist_plot, x='Edad_Decimal', y='Altura de Pie ', title="Crecimiento vs Edad Decimal")
+        fig_hist = px.scatter(df_hist_plot, x='Edad_Decimal', y='Altura de Pie ', title="Cinética de Crecimiento vs. Años al PHV")
         fig_hist.update_traces(marker=dict(size=20, color='#1E3A8A'))
         fig_hist.update_layout(width=960, height=400, title_x=0.5, plot_bgcolor='white', margin=dict(l=60, r=50, t=50, b=60), font=dict(size=16, family='Agency FB'))
-        fig_hist.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title="Edad Decimal")
-        fig_hist.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Altura de Pie (cm)")
+        fig_hist.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title="Edad Cronológica (Años)")
+        fig_hist.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Talla (cm)")
         
         try:
             img_hist_bytes = safe_render_fig(fig_hist)
@@ -152,9 +151,9 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         except: pass
 
     # =========================================================
-    # PÁGINA 2: JUGADORES
+    # PÁGINA 2: MATRIZ PLANTEL
     # =========================================================
-    add_page_header("Resumen Global de Jugadores")
+    add_page_header("Matriz Plantel")
     
     pdf.set_y(50)
     pdf.set_font(font_name, "", 14)
@@ -170,7 +169,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     pdf.set_text_color(0,0,0)
     
     pdf.cell(45, 6, "Nombre", border=1, fill=True)
-    pdf.cell(15, 6, "Dist. PHV", border=1, align="C", fill=True)
+    pdf.cell(15, 6, "Tiempo PHV", border=1, align="C", fill=True)
     pdf.cell(5, 6, "", border=0)
     pdf.cell(45, 6, "Nombre", border=1, fill=True)
     pdf.cell(15, 6, "% PHV", border=1, align="C", fill=True)
@@ -187,7 +186,6 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     top_crec = df_filtrado.sort_values('Gr.T', ascending=False).head(10)[['Nombre y Apellido', 'Gr.T']]
     
     for i in range(10):
-        # Datos
         n1 = str(top_phv.iloc[i,0])[:22] if i < len(top_phv) else ""
         val1 = top_phv.iloc[i,1] if i < len(top_phv) else np.nan
         v1 = f"{val1:.2f}" if pd.notna(val1) else ""
@@ -200,7 +198,6 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         val3 = top_crec.iloc[i,1] if i < len(top_crec) else np.nan
         v3 = f"{val3:.2f}" if pd.notna(val3) else ""
         
-        # DIBUJAR TABLA 1 (M.O)
         pdf.cell(45, 6, n1, border=1)
         if v1 != "":
             if val1 < -2: pdf.set_fill_color(46, 204, 113); pdf.set_text_color(0,0,0)
@@ -214,7 +211,6 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         pdf.set_fill_color(240, 240, 240); pdf.set_text_color(0, 0, 0)
         pdf.cell(5, 6, "", border=0)
         
-        # DIBUJAR TABLA 2 (% PHV) FIX REGLA ESTRICTA <85, <95
         pdf.cell(45, 6, n2, border=1)
         if v2 != "":
             if val2 < 85: pdf.set_fill_color(46, 204, 113); pdf.set_text_color(0,0,0)
@@ -226,7 +222,6 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         pdf.set_fill_color(240, 240, 240); pdf.set_text_color(0, 0, 0)
         pdf.cell(5, 6, "", border=0)
         
-        # DIBUJAR TABLA 3 (Gr.T)
         pdf.cell(45, 6, n3, border=1)
         if v3 != "":
             if val3 < 3: pdf.set_fill_color(46, 204, 113); pdf.set_text_color(0,0,0)
@@ -242,13 +237,13 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
 
     df_plot = df_filtrado.dropna(subset=['M.O'])
     if not df_plot.empty:
-        fig_g1 = px.scatter(df_plot, x='M.O', y='Gr.T', title="Distribución Global (Maduración vs Crecimiento)")
+        fig_g1 = px.scatter(df_plot, x='M.O', y='Gr.T', title="Cinética de Crecimiento vs. Años al PHV")
         fig_g1.update_traces(marker=dict(size=16, color='#3498DB', line=dict(width=1, color='white')))
         fig_g1.add_hline(y=7, line_dash="dash", line_color="#E74C3C", line_width=2)
         fig_g1.add_vline(x=0, line_dash="dash", line_color="#E74C3C", line_width=2)
         fig_g1.update_layout(width=960, height=480, title_x=0.5, plot_bgcolor='white', margin=dict(l=60, r=50, t=50, b=60), font=dict(size=16, family='Agency FB'), xaxis_range=[-3, 3], yaxis_range=[0, 20])
-        fig_g1.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title="Distancia al inicio de maduración (M.O)")
-        fig_g1.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Crecimiento (cm/año)")
+        fig_g1.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title="Tiempo al PHV (Años)")
+        fig_g1.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Velocidad de Crecimiento (cm/año)")
         
         try:
             img_g1_bytes = safe_render_fig(fig_g1)
@@ -256,16 +251,15 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         except: pass
 
     # =========================================================
-    # PÁGINA 3: CONOCIMIENTO GLOBAL
+    # PÁGINA 3: MONITOR DE MADURACIÓN
     # =========================================================
-    add_page_header("Conocimiento Global")
+    add_page_header("Monitor de Maduración")
     
     pdf.set_y(50)
     df_bar = df_filtrado.dropna(subset=['% PHV']).sort_values('% PHV', ascending=False)
     if not df_bar.empty:
-        # FIX BARRAS PDF: Lógica de colores estricta
         colors_b = ['#2ECC71' if val < 85 else ('#F1C40F' if val < 95 else '#E74C3C') for val in df_bar['% PHV']]
-        fig_b = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', title="Porcentaje de Altura Adulta Predicha")
+        fig_b = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', title="Distribución del Estatus Madurativo (%PAH)")
         fig_b.update_traces(marker_color=colors_b, texttemplate='%{y:.1f}%', textposition='outside')
         fig_b.add_hline(y=85, line_dash="dash", line_color="#2ECC71", line_width=2)
         fig_b.add_hline(y=95, line_dash="dash", line_color="#E74C3C", line_width=2)
@@ -284,8 +278,8 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         if not data_jug.empty:
             fig_c.add_scatter(x=data_jug['M.O'], y=data_jug['Gr.T'], mode='markers', marker=dict(size=24, color='#F1C40F', symbol='star', line=dict(width=2, color='black')), name=jug_sel)
         fig_c.update_layout(width=960, height=480, title_x=0.5, plot_bgcolor='white', xaxis_range=[-3, 3], yaxis_range=[0, 20], margin=dict(l=60, r=50, t=50, b=60), font=dict(size=16, family='Agency FB'))
-        fig_c.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title="Distancia al inicio de maduración (M.O)")
-        fig_c.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Crecimiento (cm/año)")
+        fig_c.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title="Tiempo al PHV (Años)")
+        fig_c.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Velocidad de Crecimiento (cm/año)")
         
         try:
             img_c_bytes = safe_render_fig(fig_c)
