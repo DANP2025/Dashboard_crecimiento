@@ -36,14 +36,15 @@ st.markdown("""
     .stTabs [aria-selected="true"] { background-color: #27AE60 !important; color: white !important; border-color: #27AE60 !important; }
     
     .kpi-card {
-        background-color: #ffffff; border-radius: 15px; padding: 20px 20px;
+        background-color: #ffffff; border-radius: 15px; padding: 15px 15px;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); border-left: 8px solid #27AE60;
         transition: transform 0.3s ease, box-shadow 0.3s ease; margin-bottom: 20px; 
         border-right: 1px solid #f0f0f0; border-top: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0;
     }
     .kpi-card:hover { transform: translateY(-8px); box-shadow: 0 12px 30px rgba(39, 174, 96, 0.2); }
-    .kpi-val { font-size: 3.5rem !important; font-weight: 900; color: #1A5B36; margin: 0; line-height: 1; }
-    .kpi-label { font-size: 1.4rem !important; color: #7f8c8d; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-top: 8px; }
+    /* FIX KPI TEXT CUTOFF */
+    .kpi-val { font-size: 3.2rem !important; font-weight: 900; color: #1A5B36; margin: 0; line-height: 1; }
+    .kpi-label { font-size: 1.1rem !important; color: #7f8c8d; margin: 0; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-top: 5px; white-space: normal; line-height: 1.1; }
     
     .sticky-player {
         position: fixed; top: 15px; right: 25px; background-color: rgba(255, 255, 255, 0.95);
@@ -54,65 +55,33 @@ st.markdown("""
     .sticky-player img { border-radius: 50%; width: 45px; height: 45px; object-fit: cover; border: 2px solid #F4D03F; }
     .sticky-player-name { font-size: 22px; font-weight: 900; color: #1A5B36; text-transform: uppercase; white-space: nowrap; letter-spacing: 1px;}
     
-    /* =========================================================
-       MAGIA CSS: TABLAS HTML PURAS SIN SCROLL HORIZONTAL
-       ========================================================= */
     .custom-container {
-        width: 100%;
-        overflow-x: hidden !important; /* BLOQUEA SCROLL HORIZONTAL */
-        overflow-y: auto; /* PERMITE SCROLL VERTICAL */
-        border-radius: 10px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        margin-bottom: 20px;
-        border: 1px solid #e0e0e0;
+        width: 100%; overflow-x: hidden !important; overflow-y: auto; border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #e0e0e0;
     }
-    .custom-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-family: 'Agency FB', sans-serif;
-        background-color: white;
-        table-layout: fixed; /* OBLIGA A LAS COLUMNAS A ACHICARSE */
-    }
+    .custom-table { width: 100%; border-collapse: collapse; font-family: 'Agency FB', sans-serif; background-color: white; table-layout: fixed; }
     .custom-table thead th {
-        background-color: #27AE60 !important;
-        color: white !important;
-        padding: 10px 5px !important;
-        text-align: center !important;
-        white-space: pre-wrap !important; /* PERMITE SALTO DE LÍNEA EN TÍTULOS */
-        word-wrap: break-word !important;
-        font-size: 16px !important;
-        border: 1px solid #1e8449 !important;
-        line-height: 1.1 !important;
-        vertical-align: bottom !important;
-        position: sticky; /* CABECERA CONGELADA AL BAJAR */
-        top: 0;
-        z-index: 2;
+        background-color: #27AE60 !important; color: white !important; padding: 10px 5px !important;
+        text-align: center !important; white-space: pre-wrap !important; word-wrap: break-word !important;
+        font-size: 16px !important; border: 1px solid #1e8449 !important; line-height: 1.1 !important;
+        vertical-align: bottom !important; position: sticky; top: 0; z-index: 2;
     }
     .custom-table tbody td {
-        padding: 8px 5px !important;
-        border: 1px solid #eee !important;
-        text-align: center !important;
-        vertical-align: middle !important;
-        font-size: 16px !important;
-        color: #333;
-        word-wrap: break-word !important; /* CORTA TEXTOS LARGOS SI ES NECESARIO */
+        padding: 8px 5px !important; border: 1px solid #eee !important; text-align: center !important;
+        vertical-align: middle !important; font-size: 16px !important; color: #333; word-wrap: break-word !important; 
     }
     .custom-table tbody tr:nth-child(even) { background-color: #f8f9fa; }
     .custom-table tbody tr:hover { background-color: #e8f8f5; }
     </style>
 """, unsafe_allow_html=True)
 
-# FIX: Renderizador HTML seguro, oculta el index y no deja basura en pantalla
 def render_html_table(styled_df, height="500px"):
-    try: 
-        styled_df = styled_df.hide(axis="index")
+    try: styled_df = styled_df.hide(axis="index")
     except: 
         try: styled_df = styled_df.hide_index()
         except: pass
-        
     styled_df = styled_df.set_table_attributes('class="custom-table"')
     html = styled_df.to_html()
-    
     st.markdown(f'<div class="custom-container" style="max-height: {height};">{html}</div>', unsafe_allow_html=True)
 
 def get_base64_image(img_bytes):
@@ -204,7 +173,6 @@ if not df_latest.empty:
     plotly_font_config = dict(size=20, color="#333", family="Agency FB, Segoe UI, Arial")
     plotly_hover_config = dict(font_size=22, font_family="Agency FB, Segoe UI, Arial")
 
-    # Formateador global para ocultar nulos
     def generar_formato(df):
         fmt = {}
         for c in df.columns:
@@ -219,29 +187,30 @@ if not df_latest.empty:
     # ==========================================
     with tab_dep:
         st.markdown("<br>", unsafe_allow_html=True)
-        col_tabla, col_grafico = st.columns([1.6, 1])
+        col_tabla, col_grafico = st.columns([1.1, 1])
         with col_tabla:
             st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>INDICADORES CLAVES DE RENDIMIENTO</h3>", unsafe_allow_html=True)
             df_display = df_filtrado.rename(columns={
-                'Nombre y Apellido': 'Nombre y\nApellido',
+                'Nombre y Apellido': 'Nombre',
                 'Edad_Decimal': 'Edad', 
                 'Edad Biológica': 'Edad\nBiológica',
                 'Altura de Pie ': 'Altura\nActual (cm)', 
                 'Altura_Adulta_Predicha': 'Altura Adulta\nPredicha (cm)'
             })
-            cols_table = ['Nombre y\nApellido', 'Edad', 'Edad\nBiológica', 'Altura\nActual (cm)', 'Altura Adulta\nPredicha (cm)', 'Gr.T', 'M.O']
+            cols_table = ['Nombre', 'Edad', 'Edad\nBiológica', 'Altura\nActual (cm)', 'Altura Adulta\nPredicha (cm)', 'Gr.T', 'M.O']
             styled_df = df_display[cols_table].style.format(generar_formato(df_display[cols_table]))
-            
-            # Usando la función HTML personalizada con scroll vertical
-            render_html_table(styled_df, height="550px")
+            render_html_table(styled_df, height="500px")
 
         with col_grafico:
             st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>Porcentaje de Altura Adulta Predicha</h3>", unsafe_allow_html=True)
             df_bar = df_filtrado.dropna(subset=['% PHV']).sort_values('% PHV', ascending=False)
             if not df_bar.empty:
+                # FIX COLORES BARRAS: <85 Verde, 85-94.9 Amarillo, >=95 Rojo
+                bar_colors = ['#2ECC71' if v < 85 else ('#F1C40F' if v < 95 else '#E74C3C') for v in df_bar['% PHV']]
                 fig_bar = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', text='% PHV')
-                fig_bar.update_traces(marker_color='#BDC3C7', texttemplate='%{text:.1f}%', textposition='outside', textfont_size=20)
-                fig_bar.add_hline(y=90, line_dash="dash", line_color="#E74C3C", line_width=3)
+                fig_bar.update_traces(marker_color=bar_colors, texttemplate='%{text:.1f}%', textposition='outside', textfont_size=20)
+                fig_bar.add_hline(y=85, line_dash="dash", line_color="#2ECC71", line_width=2)
+                fig_bar.add_hline(y=95, line_dash="dash", line_color="#E74C3C", line_width=2)
                 fig_bar.update_layout(yaxis_range=[60, 105], plot_bgcolor='white', margin=dict(t=20, b=20), xaxis_title="", font=plotly_font_config, hoverlabel=plotly_hover_config)
                 st.plotly_chart(fig_bar, use_container_width=True)
 
@@ -278,13 +247,12 @@ if not df_latest.empty:
             v_phv, v_grt = 0, 0
             grt = np.nan 
 
+        # FIX COLORES GAUGE: <85 Verde, 85-94.9 Amarillo, >=95 Rojo
         color_phv_gauge = "#27AE60"
         if jug_sel != "Todos":
             if v_phv < 85: color_phv_gauge = "#2ECC71"
-            elif v_phv < 88: color_phv_gauge = "#F1C40F"
-            elif v_phv <= 92: color_phv_gauge = "#E67E22" 
-            elif v_phv <= 97: color_phv_gauge = "#E74C3C" 
-            else: color_phv_gauge = "#2ECC71"
+            elif v_phv < 95: color_phv_gauge = "#F1C40F"
+            else: color_phv_gauge = "#E74C3C"
         else: color_phv_gauge = "#EBEBEB"
 
         col_left, col_right = st.columns([1.5, 1.2])
@@ -358,21 +326,23 @@ if not df_latest.empty:
             if val < 7: return 'background-color: #E67E22; color: white; font-weight:bold;'
             if val < 9: return 'background-color: #E74C3C; color: white; font-weight:bold;'
             return 'background-color: #8E0000; color: white; font-weight:bold;'
-        def color_phv(val):
-            if pd.isna(val): return ''
-            if val < 85: return 'background-color: #2ECC71; color: black; font-weight:bold;'
-            if val < 88: return 'background-color: #F1C40F; color: black; font-weight:bold;'
-            if val <= 92: return 'background-color: #E74C3C; color: white; font-weight:bold;'
-            if val <= 97: return 'background-color: #E67E22; color: white; font-weight:bold;'
-            return 'background-color: #2ECC71; color: black; font-weight:bold;'
+            
+        # FIX COLORES TABLA PHV: <85 Verde, 85-94.9 Amarillo, >=95 Rojo
+        def color_phv_table(val):
+            if pd.isna(val) or val == "": return ''
+            try:
+                v = float(val)
+                if v < 85: return 'background-color: #2ECC71; color: black; font-weight:bold;'
+                if v < 95: return 'background-color: #F1C40F; color: black; font-weight:bold;'
+                return 'background-color: #E74C3C; color: white; font-weight:bold;'
+            except:
+                return ''
 
         col1, col2, col3 = st.columns(3)
-        
         with col1:
             st.markdown("<div style='height: 60px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 10px;'><h4 style='margin:0; color: #1A5B36; font-weight: 800; font-family: \"Agency FB\"; font-size: 1.8rem;'>Jugadores cercanos a la altura PHV</h4></div>", unsafe_allow_html=True)
             df_t1 = df_filtrado[['Nombre y Apellido', 'Edad_Decimal', 'Edad Biológica', 'M.O']].copy()
             df_t1['Abs_MO'] = df_t1['M.O'].abs()
-            # FIX: Quitamos head(10) para mostrar TODOS
             df_t1_disp = df_t1.sort_values('Abs_MO').drop(columns=['Abs_MO']).rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'Edad Biológica': 'Edad\nBiológica'})
             styled_t1 = df_t1_disp.style.map(color_mo, subset=['M.O']).format(generar_formato(df_t1_disp))
             render_html_table(styled_t1, height="600px")
@@ -381,7 +351,7 @@ if not df_latest.empty:
             st.markdown("<div style='height: 60px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 10px;'><h4 style='margin:0; color: #1A5B36; font-weight: 800; font-family: \"Agency FB\"; font-size: 1.8rem;'>Jugadores que todavia siguen creciendo</h4></div>", unsafe_allow_html=True)
             df_t2 = df_filtrado[df_filtrado['M.O'] < 0][['Nombre y Apellido', 'Edad_Decimal', 'Edad Biológica', '% PHV', 'M.O', 'Gr.T']].copy()
             df_t2_disp = df_t2.sort_values('% PHV').rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'Edad Biológica': 'Edad\nBiológica', '% PHV': '%\nMadurez'})
-            styled_t2 = df_t2_disp.style.map(color_phv, subset=['%\nMadurez']).format(generar_formato(df_t2_disp))
+            styled_t2 = df_t2_disp.style.map(color_phv_table, subset=['%\nMadurez']).format(generar_formato(df_t2_disp))
             render_html_table(styled_t2, height="600px")
             
         with col3:
