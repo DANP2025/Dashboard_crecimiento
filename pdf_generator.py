@@ -52,6 +52,19 @@ def safe_render_fig(fig):
             time.sleep(1.5)
     raise Exception(f"Kaleido Error: {last_error}")
 
+def get_phv_color(phv_value):
+    """Return conditional color for % PHV based on business rule:
+    - < 85: Green (#2ECC71)
+    - 85 to < 95: Yellow (#F1C40F)
+    - >= 95: Red (#E74C3C)
+    """
+    if phv_value < 85:
+        return "#2ECC71"
+    elif phv_value < 95:
+        return "#F1C40F"
+    else:
+        return "#E74C3C"
+
 def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     
@@ -126,7 +139,8 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     draw_kpi(77.5, 103, "PESO (KG)", v_peso)
     draw_kpi(140, 103, "RITMO (CM/AÑO)", v_ritmo)
 
-    color_phv = "#E74C3C" if v_phv >= 92 else ("#E67E22" if v_phv >= 88 else "#2ECC71")
+    # UPDATED: Apply new conditional formatting for % PHV gauge
+    color_phv = get_phv_color(v_phv)
     fig_g = go.Figure()
     fig_g.add_trace(go.Indicator(mode="gauge+number", value=v_phv, domain={'x': [0, 0.45], 'y': [0, 1]}, title={'text': "Porcentaje de Madurez %", 'font': {'size': 24, 'family': 'Agency FB'}}, gauge={'axis': {'range': [80, 100]}, 'bar': {'color': color_phv}}))
     fig_g.add_trace(go.Indicator(mode="gauge+number", value=v_grt, domain={'x': [0.55, 1], 'y': [0, 1]}, title={'text': "Tasa de crecimiento (cm/año)", 'font': {'size': 24, 'family': 'Agency FB'}}, gauge={'axis': {'range': [0, 15]}, 'bar': {'color': "black"}, 'steps': [{'range': [0, 5], 'color': "#2ECC71"}, {'range': [5, 10], 'color': "#F1C40F"}, {'range': [10, 15], 'color': "#E74C3C"}]}))
@@ -194,6 +208,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     top_siguen = df_filtrado[df_filtrado['M.O'] < 0].sort_values('% PHV').head(10)[['Nombre y Apellido', '% PHV']]
     top_crec = df_filtrado.sort_values('Gr.T', ascending=False).head(10)[['Nombre y Apellido', 'Gr.T']]
     
+    # UPDATED: Apply conditional cell coloring for % PHV in table
     for i in range(10):
         n1 = str(top_phv.iloc[i,0])[:22] if i < len(top_phv) else ""
         v1 = f"{top_phv.iloc[i,1]:.2f}" if i < len(top_phv) else ""
@@ -206,7 +221,14 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         pdf.cell(15, 6, v1, border=1, align="C")
         pdf.cell(5, 6, "", border=0)
         pdf.cell(45, 6, n2, border=1)
-        pdf.cell(15, 6, v2, border=1, align="C")
+        # UPDATED: Apply conditional fill color for % PHV cell
+        phv_val = top_siguen.iloc[i,1] if i < len(top_siguen) else 0
+        phv_color = get_phv_color(phv_val)
+        # Convert hex to RGB for FPDF
+        phv_rgb = tuple(int(phv_color.lstrip('#')[j:j+2], 16) for j in (0, 2, 4))
+        pdf.set_fill_color(phv_rgb[0], phv_rgb[1], phv_rgb[2])
+        pdf.cell(15, 6, v2, border=1, align="C", fill=True)
+        pdf.set_fill_color(240, 240, 240)  # Reset to default
         pdf.cell(5, 6, "", border=0)
         pdf.cell(45, 6, n3, border=1)
         pdf.cell(15, 6, v3, border=1, align="C")
@@ -240,8 +262,10 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     pdf.set_y(50)
     df_bar = df_filtrado.dropna(subset=['% PHV']).sort_values('% PHV', ascending=False)
     if not df_bar.empty:
+        # UPDATED: Apply conditional bar colors for % PHV bar chart
+        bar_colors = [get_phv_color(val) for val in df_bar['% PHV']]
         fig_b = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', title="Porcentaje de Altura Adulta Predicha")
-        fig_b.update_traces(marker_color='#BDC3C7', texttemplate='%{y:.1f}%', textposition='outside')
+        fig_b.update_traces(marker_color=bar_colors, texttemplate='%{y:.1f}%', textposition='outside')
         fig_b.add_hline(y=90, line_dash="dash", line_color="#E74C3C", line_width=2)
         fig_b.update_layout(width=960, height=400, title_x=0.5, plot_bgcolor='white', yaxis_range=[60, 105], margin=dict(l=60, r=50, t=50, b=80), font=dict(size=16, family='Agency FB'))
         
