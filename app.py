@@ -8,8 +8,10 @@ import base64
 from data_processor import load_data_v7, get_image_bytes
 from pdf_generator import create_pdf
 
+# Configuración inicial
 st.set_page_config(page_title="Bio-Banding Institucional", page_icon="⚽", layout="wide", initial_sidebar_state="collapsed")
 
+# --- CSS PREMIUM Y FUENTES AGENCY FB ---
 st.markdown("""
     <style>
     [data-testid="collapsedControl"] { display: none; }
@@ -51,6 +53,14 @@ st.markdown("""
     }
     .sticky-player img { border-radius: 50%; width: 45px; height: 45px; object-fit: cover; border: 2px solid #F4D03F; }
     .sticky-player-name { font-size: 22px; font-weight: 900; color: #1A5B36; text-transform: uppercase; white-space: nowrap; letter-spacing: 1px;}
+    
+    /* FIX DE TABLAS: Permitir multilínea usando pre-wrap para que respete los \\n de Python */
+    [data-testid="stDataFrame"] th {
+        white-space: pre-wrap !important;
+        text-align: center !important;
+        line-height: 1.2 !important;
+        vertical-align: bottom !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -143,33 +153,25 @@ if not df_latest.empty:
     plotly_font_config = dict(size=20, color="#333", family="Agency FB, Segoe UI, Arial")
     plotly_hover_config = dict(font_size=22, font_family="Agency FB, Segoe UI, Arial")
 
-    # FIX: CSS Nativo para permitir multilínea en las cabeceras (white-space: pre-wrap)
-    def style_dataframe(df_styled):
-        df_styled = df_styled.set_properties(**{'font-size': '18px', 'padding': '8px 10px', 'font-family': 'Agency FB', 'text-align': 'center'})
+    # Función genérica de estilos de Styler (Fuente en 16px para que todo quepa holgadamente)
+    def style_dataframe(df_styled, font_size="16px"):
+        df_styled = df_styled.set_properties(**{'font-size': font_size, 'padding': '6px 8px', 'font-family': 'Agency FB'})
         df_styled = df_styled.set_table_styles([
-            {'selector': 'th', 'props': [('font-size', '16px'), ('white-space', 'pre-wrap'), ('text-align', 'center')]}
+            {'selector': 'th', 'props': [('font-size', font_size), ('font-family', 'Agency FB')]}
         ])
         return df_styled
-
-    # Generador de formatos para ocultar los nulos y formatear los números sin cambiar tipos
-    def generar_formato(df):
-        fmt = {}
-        for c in df.columns:
-            if c in ['Edad', 'Edad\nBiológica', 'Gr.T', 'M.O', '%\nMadurez', '% PHV']:
-                fmt[c] = lambda x: f"{x:.2f}" if pd.notna(x) else ""
-            elif c in ['Altura\nActual cm', 'Altura Adulta\nPredicha cm', 'Alt.(cm)', 'Alt.Pred']:
-                fmt[c] = lambda x: f"{x:.1f}" if pd.notna(x) else ""
-        return fmt
 
     # ==========================================
     # TAB 1: JUGADORES
     # ==========================================
     with tab_dep:
         st.markdown("<br>", unsafe_allow_html=True)
-        col_tabla, col_grafico = st.columns([1.3, 1])
+        # FIX: Ampliamos radicalmente el espacio de la tabla (1.7) vs el gráfico (1)
+        col_tabla, col_grafico = st.columns([1.7, 1])
         with col_tabla:
             st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>INDICADORES CLAVES DE RENDIMIENTO</h3>", unsafe_allow_html=True)
-            # FIX: Nombres originales, pero usando el salto de línea nativo de Pandas \n para forzar multirenglón
+            
+            # Inyectamos \n en los nombres de las columnas para forzar el salto de línea visual
             df_display = df_filtrado.rename(columns={
                 'Nombre y Apellido': 'Nombre y\nApellido',
                 'Edad_Decimal': 'Edad', 
@@ -178,8 +180,10 @@ if not df_latest.empty:
                 'Altura_Adulta_Predicha': 'Altura Adulta\nPredicha cm'
             })
             cols_table = ['Nombre y\nApellido', 'Edad', 'Edad\nBiológica', 'Altura\nActual cm', 'Altura Adulta\nPredicha cm', 'Gr.T', 'M.O']
-            styled_df = df_display[cols_table].style.format(generar_formato(df_display[cols_table]))
-            st.dataframe(style_dataframe(styled_df), hide_index=True, use_container_width=True, height=500)
+            
+            # Sin na_rep="" para que muestre None
+            styled_df = df_display[cols_table].style.format({'Edad': '{:.2f}', 'Edad\nBiológica': '{:.2f}', 'Altura\nActual cm': '{:.2f}', 'Altura Adulta\nPredicha cm': '{:.2f}', 'Gr.T': '{:.2f}', 'M.O': '{:.2f}'})
+            st.dataframe(style_dataframe(styled_df, "16px"), hide_index=True, use_container_width=True, height=500)
 
         with col_grafico:
             st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>Porcentaje de Altura Adulta Predicha</h3>", unsafe_allow_html=True)
@@ -318,22 +322,22 @@ if not df_latest.empty:
             df_t1 = df_filtrado[['Nombre y Apellido', 'Edad_Decimal', 'Edad Biológica', 'M.O']].copy()
             df_t1['Abs_MO'] = df_t1['M.O'].abs()
             df_t1_disp = df_t1.sort_values('Abs_MO').head(10).drop(columns=['Abs_MO']).rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'Edad Biológica': 'Edad\nBiológica'})
-            styled_t1 = df_t1_disp.style.map(color_mo, subset=['M.O']).format(generar_formato(df_t1_disp))
-            st.dataframe(style_dataframe(styled_t1), hide_index=True, use_container_width=True)
+            styled_t1 = df_t1_disp.style.map(color_mo, subset=['M.O']).format({'Edad': '{:.2f}', 'Edad\nBiológica': '{:.2f}', 'M.O': '{:.2f}'})
+            st.dataframe(style_dataframe(styled_t1, font_size="15px"), hide_index=True, use_container_width=True)
             
         with col2:
             st.markdown("<p style='text-align: center; font-weight: 800; font-size: 1.8rem; color: #1A5B36; font-family: \"Agency FB\";'>Jugadores que todavia siguen creciendo</p>", unsafe_allow_html=True)
-            df_t2 = df_filtrado[df_filtrado['M.O'] < 0][['Nombre y Apellido', '% PHV', 'M.O', 'Gr.T']].copy()
-            df_t2_disp = df_t2.sort_values('% PHV').head(10).rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', '% PHV': '%\nMadurez'})
-            styled_t2 = df_t2_disp.style.map(color_phv, subset=['%\nMadurez']).format(generar_formato(df_t2_disp))
-            st.dataframe(style_dataframe(styled_t2), hide_index=True, use_container_width=True)
+            df_t2 = df_filtrado[df_filtrado['M.O'] < 0][['Nombre y Apellido', 'Edad_Decimal', 'Edad Biológica', '% PHV', 'M.O', 'Gr.T']].copy()
+            df_t2_disp = df_t2.sort_values('% PHV').head(10).rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'Edad Biológica': 'Edad\nBiológica', '% PHV': '%\nPHV'})
+            styled_t2 = df_t2_disp.style.map(color_phv, subset=['%\nPHV']).format({'Edad': '{:.2f}', 'Edad\nBiológica': '{:.2f}', '%\nPHV': '{:.2f}', 'M.O': '{:.2f}', 'Gr.T': '{:.2f}'})
+            st.dataframe(style_dataframe(styled_t2, font_size="15px"), hide_index=True, use_container_width=True)
             
         with col3:
             st.markdown("<p style='text-align: center; font-weight: 800; font-size: 1.8rem; color: #1A5B36; font-family: \"Agency FB\";'>Mas altas de Crecimiento</p>", unsafe_allow_html=True)
             df_t3 = df_filtrado[['Nombre y Apellido', 'Edad_Decimal', 'M.O', 'Gr.T']].copy()
             df_t3_disp = df_t3.sort_values('Gr.T', ascending=False).head(10).rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad'})
-            styled_t3 = df_t3_disp.style.map(color_gt, subset=['Gr.T']).format(generar_formato(df_t3_disp))
-            st.dataframe(style_dataframe(styled_t3), hide_index=True, use_container_width=True)
+            styled_t3 = df_t3_disp.style.map(color_gt, subset=['Gr.T']).format({'Edad': '{:.2f}', 'M.O': '{:.2f}', 'Gr.T': '{:.2f}'})
+            st.dataframe(style_dataframe(styled_t3, font_size="15px"), hide_index=True, use_container_width=True)
 
         st.markdown("<h3 style='text-align: center; color: #1A5B36; margin-top: 40px; font-weight: 800; font-size: 2.2rem;'>Análisis Global de Desarrollo</h3>", unsafe_allow_html=True)
         df_plot2 = df_filtrado.dropna(subset=['M.O'])
