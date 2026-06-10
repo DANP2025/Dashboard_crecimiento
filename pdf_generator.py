@@ -157,7 +157,8 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
 
     add_page_header("Resumen Global de Jugadores")
     
-    pdf.set_y(45)
+    # FIX: Aumentamos el margen superior para evitar solapamiento con el header
+    pdf.set_y(50)
     pdf.set_font(font_name, "", 14)
     pdf.set_text_color(26, 91, 54)
     pdf.cell(60, 6, "Cercanos a PHV", border=0, align="C")
@@ -217,7 +218,8 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         
         try:
             img_g1_bytes = safe_render_fig(fig_g1)
-            pdf.image(BytesIO(img_g1_bytes), x=10, y=110, w=190)
+            # FIX: Aumentamos la posición Y para evitar solapamiento con el header
+            pdf.image(BytesIO(img_g1_bytes), x=10, y=50, w=190)
         except Exception as e:
             pdf.set_xy(10, 130)
             pdf.set_font("Arial", "I", 8)
@@ -235,7 +237,8 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         
         try:
             img_b_bytes = safe_render_fig(fig_b)
-            pdf.image(BytesIO(img_b_bytes), x=10, y=45, w=190)
+            # FIX: Aumentamos la posición Y para evitar solapamiento con el header
+            pdf.image(BytesIO(img_b_bytes), x=10, y=50, w=190)
         except Exception as e:
             pdf.set_xy(10, 60)
             pdf.set_font("Arial", "I", 8)
@@ -255,6 +258,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         
         try:
             img_c_bytes = safe_render_fig(fig_c)
+            # FIX: Aumentamos la posición Y para evitar solapamiento con el header y el gráfico anterior
             pdf.image(BytesIO(img_c_bytes), x=10, y=145, w=190)
         except Exception as e:
             pdf.set_xy(10, 165)
