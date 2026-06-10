@@ -23,7 +23,6 @@ import streamlit as st
 import time
 import gc
 
-# Descarga de fuente (Teko) como alternativa idéntica a Agency FB para el PDF
 if not os.path.exists("Agency.ttf"):
     try:
         urllib.request.urlretrieve("https://github.com/google/fonts/raw/main/ofl/teko/Teko-Medium.ttf", "Agency.ttf")
@@ -56,7 +55,6 @@ def safe_render_fig(fig):
 def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     
-    # Configuración de fuente dinámica
     if os.path.exists("Agency.ttf"):
         pdf.add_font("Agency", "", "Agency.ttf", uni=True)
         font_name = "Agency"
@@ -77,9 +75,6 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         pdf.cell(0, 10, title, ln=True, align="L")
         pdf.ln(5)
 
-    # =========================================================
-    # PÁGINA 1: PERFIL INDIVIDUAL
-    # =========================================================
     add_page_header(f"Perfil Individual: {jug_sel}")
     
     url_foto = data_jug['URLFOTO'].values[0] if 'URLFOTO' in data_jug.columns and not data_jug.empty else None
@@ -128,7 +123,6 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     draw_kpi(77.5, 103, "PESO (KG)", v_peso)
     draw_kpi(140, 103, "RITMO (CM/AÑO)", v_ritmo)
 
-    # Sincronización de textos de títulos con la web
     color_phv = "#E74C3C" if v_phv >= 92 else ("#E67E22" if v_phv >= 88 else "#2ECC71")
     fig_g = go.Figure()
     fig_g.add_trace(go.Indicator(mode="gauge+number", value=v_phv, domain={'x': [0, 0.45], 'y': [0, 1]}, title={'text': "Porcentaje de Madurez %", 'font': {'size': 24, 'family': 'Agency FB'}}, gauge={'axis': {'range': [80, 100]}, 'bar': {'color': color_phv}}))
@@ -161,12 +155,9 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
             pdf.set_text_color(255, 0, 0)
             pdf.multi_cell(190, 5, f"Error Scatter 1: {str(e)}", align="C")
 
-    # =========================================================
-    # PÁGINA 2: JUGADORES
-    # =========================================================
     add_page_header("Resumen Global de Jugadores")
     
-    pdf.set_y(32)
+    pdf.set_y(45)
     pdf.set_font(font_name, "", 14)
     pdf.set_text_color(26, 91, 54)
     pdf.cell(60, 6, "Cercanos a PHV", border=0, align="C")
@@ -233,9 +224,6 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
             pdf.set_text_color(255, 0, 0)
             pdf.multi_cell(190, 5, f"Error Scatter 2: {str(e)}", align="C")
 
-    # =========================================================
-    # PÁGINA 3: CONOCIMIENTO GLOBAL
-    # =========================================================
     add_page_header("Conocimiento Global")
     
     df_bar = df_filtrado.dropna(subset=['% PHV']).sort_values('% PHV', ascending=False)
@@ -247,9 +235,9 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         
         try:
             img_b_bytes = safe_render_fig(fig_b)
-            pdf.image(BytesIO(img_b_bytes), x=10, y=35, w=190)
+            pdf.image(BytesIO(img_b_bytes), x=10, y=45, w=190)
         except Exception as e:
-            pdf.set_xy(10, 50)
+            pdf.set_xy(10, 60)
             pdf.set_font("Arial", "I", 8)
             pdf.set_text_color(255, 0, 0)
             pdf.multi_cell(190, 5, f"Error Barras: {str(e)}", align="C")
@@ -267,9 +255,9 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         
         try:
             img_c_bytes = safe_render_fig(fig_c)
-            pdf.image(BytesIO(img_c_bytes), x=10, y=140, w=190)
+            pdf.image(BytesIO(img_c_bytes), x=10, y=145, w=190)
         except Exception as e:
-            pdf.set_xy(10, 160)
+            pdf.set_xy(10, 165)
             pdf.set_font("Arial", "I", 8)
             pdf.set_text_color(255, 0, 0)
             pdf.multi_cell(190, 5, f"Error Scatter 3: {str(e)}", align="C")
