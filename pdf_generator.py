@@ -126,8 +126,8 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     draw_kpi(77.5, 103, "PESO (KG)", v_peso)
     draw_kpi(140, 103, "RITMO (CM/AÑO)", v_ritmo)
 
-    # FIX MEDIDOR GAUGE PDF: Regla de color correcta
-    color_phv = "#E74C3C" if v_phv >= 95 else ("#F1C40F" if v_phv >= 85 else "#2ECC71")
+    # FIX COLORES GAUGE PDF: Regla estricta <85, <95, >=95
+    color_phv = "#2ECC71" if v_phv < 85 else ("#F1C40F" if v_phv < 95 else "#E74C3C")
     fig_g = go.Figure()
     fig_g.add_trace(go.Indicator(mode="gauge+number", value=v_phv, domain={'x': [0, 0.45], 'y': [0, 1]}, title={'text': "Porcentaje de Madurez %", 'font': {'size': 24, 'family': 'Agency FB'}}, gauge={'axis': {'range': [80, 100]}, 'bar': {'color': color_phv}}))
     fig_g.add_trace(go.Indicator(mode="gauge+number", value=v_grt, domain={'x': [0.55, 1], 'y': [0, 1]}, title={'text': "Tasa de crecimiento (cm/año)", 'font': {'size': 24, 'family': 'Agency FB'}}, gauge={'axis': {'range': [0, 15]}, 'bar': {'color': "black"}, 'steps': [{'range': [0, 5], 'color': "#2ECC71"}, {'range': [5, 10], 'color': "#F1C40F"}, {'range': [10, 15], 'color': "#E74C3C"}]}))
@@ -136,8 +136,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     try:
         img_g_bytes = safe_render_fig(fig_g)
         pdf.image(BytesIO(img_g_bytes), x=10, y=128, w=190)
-    except Exception as e:
-        pass
+    except: pass
 
     df_hist_plot = df_historico[df_historico['Nombre y Apellido'] == jug_sel]
     if not df_hist_plot.empty:
@@ -150,8 +149,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         try:
             img_hist_bytes = safe_render_fig(fig_hist)
             pdf.image(BytesIO(img_hist_bytes), x=10, y=192, w=190)
-        except Exception as e:
-            pass
+        except: pass
 
     # =========================================================
     # PÁGINA 2: JUGADORES
@@ -189,39 +187,57 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     top_crec = df_filtrado.sort_values('Gr.T', ascending=False).head(10)[['Nombre y Apellido', 'Gr.T']]
     
     for i in range(10):
+        # Datos
         n1 = str(top_phv.iloc[i,0])[:22] if i < len(top_phv) else ""
-        v1 = f"{top_phv.iloc[i,1]:.2f}" if i < len(top_phv) else ""
-        n2 = str(top_siguen.iloc[i,0])[:22] if i < len(top_siguen) else ""
-        v2 = f"{top_siguen.iloc[i,1]:.2f}" if i < len(top_siguen) else ""
-        n3 = str(top_crec.iloc[i,0])[:22] if i < len(top_crec) else ""
-        v3 = f"{top_crec.iloc[i,1]:.2f}" if i < len(top_crec) else ""
+        val1 = top_phv.iloc[i,1] if i < len(top_phv) else np.nan
+        v1 = f"{val1:.2f}" if pd.notna(val1) else ""
         
+        n2 = str(top_siguen.iloc[i,0])[:22] if i < len(top_siguen) else ""
+        val2 = top_siguen.iloc[i,1] if i < len(top_siguen) else np.nan
+        v2 = f"{val2:.2f}" if pd.notna(val2) else ""
+        
+        n3 = str(top_crec.iloc[i,0])[:22] if i < len(top_crec) else ""
+        val3 = top_crec.iloc[i,1] if i < len(top_crec) else np.nan
+        v3 = f"{val3:.2f}" if pd.notna(val3) else ""
+        
+        # DIBUJAR TABLA 1 (M.O)
         pdf.cell(45, 6, n1, border=1)
-        pdf.cell(15, 6, v1, border=1, align="C")
+        if v1 != "":
+            if val1 < -2: pdf.set_fill_color(46, 204, 113); pdf.set_text_color(0,0,0)
+            elif val1 < -1: pdf.set_fill_color(241, 196, 15); pdf.set_text_color(0,0,0)
+            elif val1 < 1: pdf.set_fill_color(231, 76, 60); pdf.set_text_color(255,255,255)
+            elif val1 < 2: pdf.set_fill_color(230, 126, 34); pdf.set_text_color(255,255,255)
+            else: pdf.set_fill_color(46, 204, 113); pdf.set_text_color(0,0,0)
+            pdf.cell(15, 6, v1, border=1, align="C", fill=True)
+        else:
+            pdf.cell(15, 6, v1, border=1, align="C")
+        pdf.set_fill_color(240, 240, 240); pdf.set_text_color(0, 0, 0)
         pdf.cell(5, 6, "", border=0)
         
+        # DIBUJAR TABLA 2 (% PHV) FIX REGLA ESTRICTA <85, <95
         pdf.cell(45, 6, n2, border=1)
-        # FIX CELDAS PDF TABLA 2: Lógica actualizada de colores
         if v2 != "":
-            val_num = float(v2)
-            if val_num < 85:
-                pdf.set_fill_color(46, 204, 113) # Verde
-                pdf.set_text_color(0, 0, 0)
-            elif val_num < 95:
-                pdf.set_fill_color(241, 196, 15) # Amarillo
-                pdf.set_text_color(0, 0, 0)
-            else:
-                pdf.set_fill_color(231, 76, 60) # Rojo
-                pdf.set_text_color(255, 255, 255)
+            if val2 < 85: pdf.set_fill_color(46, 204, 113); pdf.set_text_color(0,0,0)
+            elif val2 < 95: pdf.set_fill_color(241, 196, 15); pdf.set_text_color(0,0,0)
+            else: pdf.set_fill_color(231, 76, 60); pdf.set_text_color(255,255,255)
             pdf.cell(15, 6, v2, border=1, align="C", fill=True)
-            pdf.set_fill_color(240, 240, 240)
-            pdf.set_text_color(0, 0, 0)
         else:
             pdf.cell(15, 6, v2, border=1, align="C")
-            
+        pdf.set_fill_color(240, 240, 240); pdf.set_text_color(0, 0, 0)
         pdf.cell(5, 6, "", border=0)
+        
+        # DIBUJAR TABLA 3 (Gr.T)
         pdf.cell(45, 6, n3, border=1)
-        pdf.cell(15, 6, v3, border=1, align="C")
+        if v3 != "":
+            if val3 < 3: pdf.set_fill_color(46, 204, 113); pdf.set_text_color(0,0,0)
+            elif val3 < 5: pdf.set_fill_color(241, 196, 15); pdf.set_text_color(0,0,0)
+            elif val3 < 7: pdf.set_fill_color(230, 126, 34); pdf.set_text_color(255,255,255)
+            elif val3 < 9: pdf.set_fill_color(231, 76, 60); pdf.set_text_color(255,255,255)
+            else: pdf.set_fill_color(142, 0, 0); pdf.set_text_color(255,255,255)
+            pdf.cell(15, 6, v3, border=1, align="C", fill=True)
+        else:
+            pdf.cell(15, 6, v3, border=1, align="C")
+        pdf.set_fill_color(240, 240, 240); pdf.set_text_color(0, 0, 0)
         pdf.ln()
 
     df_plot = df_filtrado.dropna(subset=['M.O'])
@@ -247,7 +263,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     pdf.set_y(50)
     df_bar = df_filtrado.dropna(subset=['% PHV']).sort_values('% PHV', ascending=False)
     if not df_bar.empty:
-        # FIX BARRAS PDF: Lógica actualizada de colores
+        # FIX BARRAS PDF: Lógica de colores estricta
         colors_b = ['#2ECC71' if val < 85 else ('#F1C40F' if val < 95 else '#E74C3C') for val in df_bar['% PHV']]
         fig_b = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', title="Porcentaje de Altura Adulta Predicha")
         fig_b.update_traces(marker_color=colors_b, texttemplate='%{y:.1f}%', textposition='outside')
