@@ -168,7 +168,7 @@ if not df_latest.empty:
     st.markdown("<br>", unsafe_allow_html=True)
 
     # NUEVOS NOMBRES DE PESTAÑAS
-    tab_dep, tab_perf, tab_con = st.tabs(["👥 Matriz plantel", "👤 Perfil Individual", "🌍 Monitor de Maduración"])
+    tab_dep, tab_perf, tab_con = st.tabs(["👥 Matriz Plantel", "👤 Perfil Individual", "🌍 Monitor de Maduración"])
 
     plotly_font_config = dict(size=20, color="#333", family="Agency FB, Segoe UI, Arial")
     plotly_hover_config = dict(font_size=22, font_family="Agency FB, Segoe UI, Arial")
