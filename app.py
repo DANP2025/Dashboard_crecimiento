@@ -36,14 +36,14 @@ st.markdown("""
     .stTabs [aria-selected="true"] { background-color: #27AE60 !important; color: white !important; border-color: #27AE60 !important; }
     
     .kpi-card {
-        background-color: #ffffff; border-radius: 15px; padding: 15px 15px;
+        background-color: #ffffff; border-radius: 15px; padding: 20px 20px;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); border-left: 8px solid #27AE60;
         transition: transform 0.3s ease, box-shadow 0.3s ease; margin-bottom: 20px; 
         border-right: 1px solid #f0f0f0; border-top: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0;
     }
     .kpi-card:hover { transform: translateY(-8px); box-shadow: 0 12px 30px rgba(39, 174, 96, 0.2); }
-    .kpi-val { font-size: 3.2rem !important; font-weight: 900; color: #1A5B36; margin: 0; line-height: 1; }
-    .kpi-label { font-size: 1.1rem !important; color: #7f8c8d; margin: 0; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-top: 5px; white-space: normal; line-height: 1.1; }
+    .kpi-val { font-size: 3.5rem !important; font-weight: 900; color: #1A5B36; margin: 0; line-height: 1; }
+    .kpi-label { font-size: 1.4rem !important; color: #7f8c8d; margin: 0; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-top: 8px; white-space: normal; line-height: 1.1; }
     
     .sticky-player {
         position: fixed; top: 15px; right: 25px; background-color: rgba(255, 255, 255, 0.95);
@@ -56,15 +56,12 @@ st.markdown("""
     
     .custom-container { width: 100%; overflow-x: hidden !important; overflow-y: auto; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #e0e0e0; }
     .custom-table { width: 100%; border-collapse: collapse; font-family: 'Agency FB', sans-serif; background-color: white; table-layout: fixed; }
-    
-    /* FIX: ALINEACIÓN VERTICAL CENTRAL PARA CABECERAS */
     .custom-table thead th {
         background-color: #27AE60 !important; color: white !important; padding: 10px 5px !important;
         text-align: center !important; white-space: pre-wrap !important; word-wrap: break-word !important;
         font-size: 16px !important; border: 1px solid #1e8449 !important; line-height: 1.1 !important;
         vertical-align: middle !important; position: sticky; top: 0; z-index: 2;
     }
-    
     .custom-table tbody td { padding: 8px 5px !important; border: 1px solid #eee !important; text-align: center !important; vertical-align: middle !important; font-size: 16px !important; color: #333; word-wrap: break-word !important; }
     .custom-table tbody tr:nth-child(even) { background-color: #f8f9fa; }
     .custom-table tbody tr:hover { background-color: #e8f8f5; }
@@ -84,18 +81,28 @@ def get_base64_image(img_bytes):
     if img_bytes: return base64.b64encode(img_bytes.getvalue()).decode()
     return ""
 
-col_empty, col_title, col_logo = st.columns([1, 8, 1])
+# =========================================================
+# CABECERA GLOBAL INSTITUCIONAL MULTINIVEL CON LOGO CENTRADO
+# =========================================================
+logo_html = ""
+try:
+    with open("logo.jpeg", "rb") as image_file:
+        encoded_string = base64.b64encode(image_file.read()).decode()
+    # Inyectamos el logo con un tamaño de 110px justo arriba del título
+    logo_html = f"<img src='data:image/jpeg;base64,{encoded_string}' style='width: 110px; margin-bottom: 15px;'>"
+except:
+    pass
+
+col_empty, col_title, col_empty2 = st.columns([1, 8, 1])
 with col_title:
-    st.markdown("""
+    st.markdown(f"""
         <div style='margin-bottom: 15px; text-align: center;'>
+            {logo_html}
             <h1 style='color: #1A5B36; font-weight: 900; margin: 0; font-size: 3.5rem; line-height: 1.1; letter-spacing: 1px;'>BIO-BANDING INSTITUCIONAL:</h1>
             <h2 style='color: #27AE60; font-weight: 800; margin: 0; font-size: 2.2rem; line-height: 1.2; letter-spacing: 0.5px;'>ENTRENAMIENTO DEL FUTBOLISTA POR MADURACIÓN BIOLÓGICA</h2>
             <h3 style='color: #555555; font-weight: 700; margin: 0; font-size: 1.6rem; line-height: 1.2; letter-spacing: 0.5px;'>MATRIZ METODOLÓGICA INTEGRADA: MODELO - FUTBOLISTAS ATLETAS</h3>
         </div>
     """, unsafe_allow_html=True)
-with col_logo:
-    try: st.image('logo.jpeg', width=130)
-    except: pass
 
 df_historico, df_latest = load_data_v8()
 
@@ -153,14 +160,6 @@ if not df_latest.empty:
 
     plotly_font_config = dict(size=20, color="#333", family="Agency FB, Segoe UI, Arial")
     plotly_hover_config = dict(font_size=22, font_family="Agency FB, Segoe UI, Arial")
-
-    def style_dataframe(df_styled, font_size="16px"):
-        df_styled = df_styled.set_properties(**{'font-size': font_size, 'padding': '6px 8px', 'font-family': 'Agency FB', 'text-align': 'center'})
-        # FIX: Añadimos vertical-align: middle también en las propiedades del Styler por seguridad
-        df_styled = df_styled.set_table_styles([
-            {'selector': 'th', 'props': [('font-size', font_size), ('font-family', 'Agency FB'), ('white-space', 'pre-wrap'), ('text-align', 'center'), ('vertical-align', 'middle')]}
-        ])
-        return df_styled
 
     def generar_formato(df):
         fmt = {}
@@ -296,14 +295,15 @@ if not df_latest.empty:
             if val < 7: return 'background-color: #E67E22; color: white; font-weight:bold;'
             if val < 9: return 'background-color: #E74C3C; color: white; font-weight:bold;'
             return 'background-color: #8E0000; color: white; font-weight:bold;'
-        def color_phv_table(val):
+        def color_phv(val):
             if pd.isna(val) or val == "": return ''
             try:
                 v = float(val)
                 if v < 85: return 'background-color: #2ECC71; color: black; font-weight:bold;'
                 if v < 95: return 'background-color: #F1C40F; color: black; font-weight:bold;'
                 return 'background-color: #E74C3C; color: white; font-weight:bold;'
-            except: return ''
+            except:
+                return ''
 
         col1, col2, col3 = st.columns(3)
         title_style = "<div style='height: 90px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 10px;'><h4 style='margin:0; text-align: center; color: #1A5B36; font-weight: 800; font-family: \"Agency FB\"; font-size: 1.6rem; line-height: 1.1;'>{}</h4></div>"
@@ -319,7 +319,7 @@ if not df_latest.empty:
             st.markdown(title_style.format("Estatus Madurativo:<br>Fase Pre - PHV"), unsafe_allow_html=True)
             df_t2 = df_filtrado[df_filtrado['M.O'] < 0][['Nombre y Apellido', 'Edad_Decimal', 'Edad PHV', '% PHV', 'M.O', 'Gr.T']].copy()
             df_t2_disp = df_t2.sort_values('% PHV').rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'Edad PHV': 'Edad\nPHV', '% PHV': '%\nMadurez', 'M.O': 'Maturity Offset\n(Años al PHV)', 'Gr.T': 'Velocidad de\nCrecimiento\n(Δ cm/año)'})
-            render_html_table(df_t2_disp.style.map(color_phv_table, subset=['%\nMadurez']).format(generar_formato(df_t2_disp)), height="600px")
+            render_html_table(df_t2_disp.style.map(color_phv, subset=['%\nMadurez']).format(generar_formato(df_t2_disp)), height="600px")
             
         with col3:
             st.markdown(title_style.format("Alerta Neuromuscular:<br>Máxima Velocidad de Crecimiento<br>(Δ cm/año)"), unsafe_allow_html=True)
