@@ -272,25 +272,27 @@ if not df_latest.empty:
             font_color_2 = "white" if (jug_sel == "Todos" or pd.isna(grt)) else "#1A5B36"
 
             with g1:
+                # FIX: Título en 2 líneas usando <br> y ajustando márgenes
                 fig1 = go.Figure(go.Indicator(
                     mode="gauge+number", value=v_phv, 
                     number={'font': {'size': 60, 'color': font_color_1, 'family': 'Agency FB'}, 'valueformat': '.1f'}, 
                     domain={'x': [0, 1], 'y': [0, 1]}, 
-                    title={'text': "Estatus Madurativo (%PAH)", 'font': {'size': 24, 'color': '#7f8c8d', 'weight': 'bold', 'family': 'Agency FB'}}, 
+                    title={'text': "Estatus Madurativo<br>(%PAH)", 'font': {'size': 20, 'color': '#7f8c8d', 'weight': 'bold', 'family': 'Agency FB'}}, 
                     gauge={'axis': {'range': [80, 100], 'tickwidth': 2, 'tickfont': {'size': 18, 'family': 'Agency FB'}}, 'bar': {'color': color_phv_gauge, 'thickness': 0.35}}
                 ))
-                fig1.update_layout(height=300, margin=dict(l=40, r=40, t=60, b=20), font=plotly_font_config)
+                fig1.update_layout(height=320, margin=dict(l=40, r=40, t=90, b=20), font=plotly_font_config)
                 st.plotly_chart(fig1, use_container_width=True)
                 
             with g2:
+                # FIX: Título en 2 líneas usando <br> y ajustando márgenes
                 color_aguja = "rgba(0,0,0,0)" if pd.isna(grt) or jug_sel == "Todos" else "#1A5B36"
                 fig2 = go.Figure(go.Indicator(
                     mode="gauge+number", value=v_grt, 
                     number={'font': {'size': 60, 'color': font_color_2, 'family': 'Agency FB'}, 'valueformat': '.2f'}, 
                     domain={'x': [0, 1], 'y': [0, 1]}, 
-                    title={'text': "Velocidad de Crecimiento (Δ cm/año)", 'font': {'size': 24, 'color': '#7f8c8d', 'weight': 'bold', 'family': 'Agency FB'}}, 
+                    title={'text': "Velocidad de Crecimiento<br>(Δ cm/año)", 'font': {'size': 20, 'color': '#7f8c8d', 'weight': 'bold', 'family': 'Agency FB'}}, 
                     gauge={'axis': {'range': [0, 15], 'tickwidth': 2, 'tickfont': {'size': 18, 'family': 'Agency FB'}}, 'bar': {'color': color_aguja, 'thickness': 0.35}, 'steps': [{'range': [0, 5], 'color': "#2ECC71"}, {'range': [5, 10], 'color': "#F1C40F"}, {'range': [10, 15], 'color': "#E74C3C"}]}))
-                fig2.update_layout(height=300, margin=dict(l=40, r=40, t=60, b=20), font=plotly_font_config)
+                fig2.update_layout(height=320, margin=dict(l=40, r=40, t=90, b=20), font=plotly_font_config)
                 st.plotly_chart(fig2, use_container_width=True)
 
         st.markdown("<h3 style='text-align: center; color: #1A5B36; margin-top: 30px; font-weight: 800; font-size: 2.2rem;'>Cinética de Crecimiento vs. Años al PHV</h3>", unsafe_allow_html=True)
