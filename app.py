@@ -5,7 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from PIL import Image
 import base64
-from data_processor import load_data_v9, get_image_bytes
+from data_processor import load_data_v7, get_image_bytes
 from pdf_generator import create_pdf
 
 # Configuración inicial
@@ -110,7 +110,7 @@ with col_title:
         </div>
     """, unsafe_allow_html=True)
 
-df_historico, df_latest = load_data_v9()
+df_historico, df_latest = load_data_v7()
 
 if not df_latest.empty:
     st.markdown("<br>", unsafe_allow_html=True)
@@ -230,7 +230,15 @@ if not df_latest.empty:
                 fig_bar.add_hline(y=95, line_dash="dash", line_color="#E74C3C", line_width=2)
                 fig_bar.update_layout(yaxis_range=[60, 105], plot_bgcolor='white', margin=dict(t=20, b=20), xaxis_title="", font=plotly_font_config, hoverlabel=plotly_hover_config)
                 st.plotly_chart(fig_bar, use_container_width=True)
-                st.markdown("<p style='text-align: center; font-size: 1.2rem; color: #7f8c8d; font-family: \"Agency FB\"; margin-top: -15px;'><i>* Color automatizado en las barras de este gráfico (ej. Verde para pre PHV &lt;84.9%, amarillo para circa – PHV 85% - 94.9%, rojo para post – PHV &gt;95%), para acelerar la identificación visual de riesgo lesional durante el análisis.</i></p>", unsafe_allow_html=True)
+                # FIX: Inyección de Leyenda Visual HTML Pixel-Perfect (Reemplazo del texto)
+                st.markdown("""
+                <div style='display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px; font-family: "Agency FB", sans-serif; font-size: 1.5rem; color: #333; margin-top: -15px;'>
+                    <strong style='color: #1A5B36; margin-right: 5px;'>Estatus Madurativo (%PAH):</strong>
+                    <div style='display: flex; align-items: center;'><div style='width: 18px; height: 18px; background-color: #2ECC71; margin-right: 6px; border-radius: 3px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2);'></div> Pre-PHV (&lt;85%) <span style='margin-left: 8px; color: #ccc;'>|</span></div>
+                    <div style='display: flex; align-items: center;'><div style='width: 18px; height: 18px; background-color: #F1C40F; margin-right: 6px; border-radius: 3px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2);'></div> Circa-PHV (85-95%) <span style='margin-left: 8px; color: #ccc;'>|</span></div>
+                    <div style='display: flex; align-items: center;'><div style='width: 18px; height: 18px; background-color: #E74C3C; margin-right: 6px; border-radius: 3px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2);'></div> Post-PHV (&gt;95%)</div>
+                </div>
+                """, unsafe_allow_html=True)
 
         st.markdown("<hr>", unsafe_allow_html=True)
         # FIX: Renderizado de Titulo con Icono logofutbolista inyectado
