@@ -5,7 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from PIL import Image
 import base64
-from data_processor import load_data_v7, get_image_bytes
+from data_processor import load_data_v8, get_image_bytes
 from pdf_generator import create_pdf
 
 # Configuración inicial
@@ -16,16 +16,12 @@ st.markdown("""
     <style>
     [data-testid="collapsedControl"] { display: none; }
     section[data-testid="stSidebar"] { display: none; }
-    
     @import url('https://fonts.cdnfonts.com/css/agency-fb');
     html, body, [class*="css"], p, span, div, label, h1, h2, h3, h4, h5, h6, button, th, td { 
         font-family: 'Agency FB', 'Segoe UI', Roboto, Helvetica, sans-serif !important; 
     }
-    
     html, body, [class*="css"] { font-size: 20px !important; }
-    
     .stSelectbox label { font-size: 1.5rem !important; font-weight: 800 !important; color: #1A5B36 !important; letter-spacing: 1px; }
-    
     .stTabs [data-baseweb="tab-list"] { gap: 10px; border-bottom: 3px solid #27AE60; padding-top: 15px; }
     .stTabs [data-baseweb="tab"] {
         height: 60px; background-color: #f8f9fa; border-radius: 12px 12px 0px 0px;
@@ -34,17 +30,15 @@ st.markdown("""
     }
     .stTabs [data-baseweb="tab"]:hover { background-color: #F4D03F; color: #1A5B36; }
     .stTabs [aria-selected="true"] { background-color: #27AE60 !important; color: white !important; border-color: #27AE60 !important; }
-    
     .kpi-card {
-        background-color: #ffffff; border-radius: 15px; padding: 20px 20px;
+        background-color: #ffffff; border-radius: 15px; padding: 15px 15px;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); border-left: 8px solid #27AE60;
         transition: transform 0.3s ease, box-shadow 0.3s ease; margin-bottom: 20px; 
         border-right: 1px solid #f0f0f0; border-top: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0;
     }
     .kpi-card:hover { transform: translateY(-8px); box-shadow: 0 12px 30px rgba(39, 174, 96, 0.2); }
-    .kpi-val { font-size: 3.5rem !important; font-weight: 900; color: #1A5B36; margin: 0; line-height: 1; }
-    .kpi-label { font-size: 1.4rem !important; color: #7f8c8d; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-top: 8px; white-space: normal; line-height: 1.1; }
-    
+    .kpi-val { font-size: 3.2rem !important; font-weight: 900; color: #1A5B36; margin: 0; line-height: 1; }
+    .kpi-label { font-size: 1.1rem !important; color: #7f8c8d; margin: 0; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-top: 5px; white-space: normal; line-height: 1.1; }
     .sticky-player {
         position: fixed; top: 15px; right: 25px; background-color: rgba(255, 255, 255, 0.95);
         padding: 6px 20px 6px 6px; border-radius: 60px; box-shadow: 0 6px 20px rgba(0,0,0,0.15);
@@ -53,11 +47,7 @@ st.markdown("""
     }
     .sticky-player img { border-radius: 50%; width: 45px; height: 45px; object-fit: cover; border: 2px solid #F4D03F; }
     .sticky-player-name { font-size: 22px; font-weight: 900; color: #1A5B36; text-transform: uppercase; white-space: nowrap; letter-spacing: 1px;}
-    
-    .custom-container {
-        width: 100%; overflow-x: hidden !important; overflow-y: auto; border-radius: 10px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #e0e0e0;
-    }
+    .custom-container { width: 100%; overflow-x: hidden !important; overflow-y: auto; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #e0e0e0; }
     .custom-table { width: 100%; border-collapse: collapse; font-family: 'Agency FB', sans-serif; background-color: white; table-layout: fixed; }
     .custom-table thead th {
         background-color: #27AE60 !important; color: white !important; padding: 10px 5px !important;
@@ -65,10 +55,7 @@ st.markdown("""
         font-size: 16px !important; border: 1px solid #1e8449 !important; line-height: 1.1 !important;
         vertical-align: bottom !important; position: sticky; top: 0; z-index: 2;
     }
-    .custom-table tbody td {
-        padding: 8px 5px !important; border: 1px solid #eee !important; text-align: center !important;
-        vertical-align: middle !important; font-size: 16px !important; color: #333; word-wrap: break-word !important; 
-    }
+    .custom-table tbody td { padding: 8px 5px !important; border: 1px solid #eee !important; text-align: center !important; vertical-align: middle !important; font-size: 16px !important; color: #333; word-wrap: break-word !important; }
     .custom-table tbody tr:nth-child(even) { background-color: #f8f9fa; }
     .custom-table tbody tr:hover { background-color: #e8f8f5; }
     </style>
@@ -100,7 +87,7 @@ with col_logo:
     try: st.image('logo.jpeg', width=130)
     except: pass
 
-df_historico, df_latest = load_data_v7()
+df_historico, df_latest = load_data_v8()
 
 if not df_latest.empty:
     st.markdown("<br>", unsafe_allow_html=True)
@@ -172,17 +159,10 @@ if not df_latest.empty:
     plotly_font_config = dict(size=20, color="#333", family="Agency FB, Segoe UI, Arial")
     plotly_hover_config = dict(font_size=22, font_family="Agency FB, Segoe UI, Arial")
 
-    def style_dataframe(df_styled, font_size="16px"):
-        df_styled = df_styled.set_properties(**{'font-size': font_size, 'padding': '6px 8px', 'font-family': 'Agency FB', 'text-align': 'center'})
-        df_styled = df_styled.set_table_styles([
-            {'selector': 'th', 'props': [('font-size', font_size), ('font-family', 'Agency FB'), ('white-space', 'pre-wrap'), ('text-align', 'center')]}
-        ])
-        return df_styled
-
     def generar_formato(df):
         fmt = {}
         for c in df.columns:
-            if c in ['Edad', 'Edad\nBiológica', 'Edad\nPHV', 'Gr.T', 'M.O', '%\nMadurez', '% PHV', 'Maturity Offset\n(Años al PHV)', 'Velocidad de\nCrecimiento\n(Δ cm/año)']:
+            if c in ['Edad', 'Edad\nPHV', 'Gr.T', 'M.O', '%\nMadurez', '% PHV', 'Maturity Offset\n(Años al PHV)', 'Velocidad de\nCrecimiento\n(Δ cm/año)']:
                 fmt[c] = lambda x: f"{x:.2f}" if pd.notna(x) else ""
             elif c in ['Altura\nActual (cm)', 'Altura Adulta\nPredicha (cm)', 'Alt.(cm)', 'Alt.Pred']:
                 fmt[c] = lambda x: f"{x:.1f}" if pd.notna(x) else ""
@@ -196,14 +176,8 @@ if not df_latest.empty:
         col_tabla, col_grafico = st.columns([1.6, 1])
         with col_tabla:
             st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>MATRIZ ANTROPOMÉTRICA Y MADURATIVA</h3>", unsafe_allow_html=True)
-            df_display = df_filtrado.rename(columns={
-                'Nombre y Apellido': 'Nombre y\nApellido',
-                'Edad_Decimal': 'Edad', 
-                'Edad Biológica': 'Edad\nBiológica',
-                'Altura de Pie ': 'Altura\nActual (cm)', 
-                'Altura_Adulta_Predicha': 'Altura Adulta\nPredicha (cm)'
-            })
-            cols_table = ['Nombre y\nApellido', 'Edad', 'Edad\nBiológica', 'Altura\nActual (cm)', 'Altura Adulta\nPredicha (cm)', 'Gr.T', 'M.O']
+            df_display = df_filtrado.rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'Edad PHV': 'Edad\nPHV', 'Altura de Pie ': 'Altura\nActual (cm)', 'Altura_Adulta_Predicha': 'Altura Adulta\nPredicha (cm)'})
+            cols_table = ['Nombre y\nApellido', 'Edad', 'Edad\nPHV', 'Altura\nActual (cm)', 'Altura Adulta\nPredicha (cm)', 'Gr.T', 'M.O']
             styled_df = df_display[cols_table].style.format(generar_formato(df_display[cols_table]))
             render_html_table(styled_df, height="500px")
 
@@ -240,34 +214,27 @@ if not df_latest.empty:
         st.markdown("<br>", unsafe_allow_html=True)
         if not data_jug.empty:
             v_edad = f"{data_jug['Edad_Decimal'].values[0]:.2f}"
-            v_edad_bio = f"{data_jug['Edad Biológica'].values[0]:.2f}"
+            v_edad_phv = f"{data_jug['Edad PHV'].values[0]:.2f}"
             v_etapa = "Normal" if data_jug['M.O'].values[0] >= 0 else "Tardía"
             v_alt = f"{data_jug['Altura de Pie '].values[0]:.1f}"
             v_peso = f"{data_jug['Peso'].values[0]:.2f}"
             grt = data_jug['Gr.T'].values[0]
-            v_ritmo = "Sin datos" if pd.isna(grt) else f"{grt:.2f}"
+            v_ritmo = f"{grt:.2f}" if pd.notna(grt) else "Sin datos"
             v_phv = data_jug['% PHV'].values[0] if not pd.isna(data_jug['% PHV'].values[0]) else 0
             v_grt = grt if not pd.isna(grt) else 0
         else:
-            v_edad, v_edad_bio, v_etapa, v_alt, v_peso, v_ritmo = "--", "(Blank)", "(Blank)", "(Blank)", "(Blank)", "(Blank)"
-            v_phv, v_grt = 0, 0
-            grt = np.nan 
+            v_edad, v_edad_phv, v_etapa, v_alt, v_peso, v_ritmo = "--", "(Blank)", "(Blank)", "(Blank)", "(Blank)", "(Blank)"
+            v_phv, v_grt, grt = 0, 0, np.nan 
 
-        color_phv_gauge = "#27AE60"
-        if jug_sel != "Todos":
-            if v_phv < 85: color_phv_gauge = "#2ECC71"
-            elif v_phv < 95: color_phv_gauge = "#F1C40F"
-            else: color_phv_gauge = "#E74C3C"
-        else: color_phv_gauge = "#EBEBEB"
+        color_phv_gauge = "#2ECC71" if v_phv < 85 else ("#F1C40F" if v_phv < 95 else "#E74C3C")
+        if jug_sel == "Todos": color_phv_gauge = "#EBEBEB"
 
         col_left, col_right = st.columns([1.5, 1.2])
-        
         with col_left:
             c1, c2, c3 = st.columns(3)
             c1.markdown(f"<div class='kpi-card'><p class='kpi-val'>{v_edad}</p><p class='kpi-label'>Edad Cronológica</p></div>", unsafe_allow_html=True)
-            c2.markdown(f"<div class='kpi-card'><p class='kpi-val'>{v_edad_bio}</p><p class='kpi-label'>Edad Biológica</p></div>", unsafe_allow_html=True)
+            c2.markdown(f"<div class='kpi-card'><p class='kpi-val'>{v_edad_phv}</p><p class='kpi-label'>Edad PHV</p></div>", unsafe_allow_html=True)
             c3.markdown(f"<div class='kpi-card'><p class='kpi-val'>{v_etapa}</p><p class='kpi-label'>Ritmo Madurativo</p></div>", unsafe_allow_html=True)
-            
             c4, c5, c6 = st.columns(3)
             c4.markdown(f"<div class='kpi-card'><p class='kpi-val'>{v_alt}</p><p class='kpi-label'>Talla (cm)</p></div>", unsafe_allow_html=True)
             c5.markdown(f"<div class='kpi-card'><p class='kpi-val'>{v_peso}</p><p class='kpi-label'>Masa Corporal</p></div>", unsafe_allow_html=True)
@@ -275,28 +242,15 @@ if not df_latest.empty:
 
         with col_right:
             g1, g2 = st.columns(2)
-            font_color_1 = "white" if jug_sel == "Todos" else "#1A5B36"
-            font_color_2 = "white" if (jug_sel == "Todos" or pd.isna(grt)) else "#1A5B36"
-
+            f1 = "white" if jug_sel == "Todos" else "#1A5B36"
+            f2 = "white" if (jug_sel == "Todos" or pd.isna(grt)) else "#1A5B36"
             with g1:
-                fig1 = go.Figure(go.Indicator(
-                    mode="gauge+number", value=v_phv, 
-                    number={'font': {'size': 60, 'color': font_color_1, 'family': 'Agency FB'}, 'valueformat': '.1f'}, 
-                    domain={'x': [0, 1], 'y': [0, 1]}, 
-                    title={'text': "Estatus Madurativo<br>(%PAH)", 'font': {'size': 20, 'color': '#7f8c8d', 'weight': 'bold', 'family': 'Agency FB'}}, 
-                    gauge={'axis': {'range': [80, 100], 'tickwidth': 2, 'tickfont': {'size': 18, 'family': 'Agency FB'}}, 'bar': {'color': color_phv_gauge, 'thickness': 0.35}}
-                ))
+                fig1 = go.Figure(go.Indicator(mode="gauge+number", value=v_phv, number={'font': {'size': 60, 'color': f1, 'family': 'Agency FB'}, 'valueformat': '.1f'}, domain={'x': [0, 1], 'y': [0, 1]}, title={'text': "Estatus Madurativo<br>(%PAH)", 'font': {'size': 20, 'color': '#7f8c8d', 'weight': 'bold', 'family': 'Agency FB'}}, gauge={'axis': {'range': [80, 100], 'tickwidth': 2, 'tickfont': {'size': 18, 'family': 'Agency FB'}}, 'bar': {'color': color_phv_gauge, 'thickness': 0.35}}))
                 fig1.update_layout(height=320, margin=dict(l=40, r=40, t=90, b=20), font=plotly_font_config)
                 st.plotly_chart(fig1, use_container_width=True)
-                
             with g2:
                 color_aguja = "rgba(0,0,0,0)" if pd.isna(grt) or jug_sel == "Todos" else "#1A5B36"
-                fig2 = go.Figure(go.Indicator(
-                    mode="gauge+number", value=v_grt, 
-                    number={'font': {'size': 60, 'color': font_color_2, 'family': 'Agency FB'}, 'valueformat': '.2f'}, 
-                    domain={'x': [0, 1], 'y': [0, 1]}, 
-                    title={'text': "Velocidad de Crecimiento<br>(Δ cm/año)", 'font': {'size': 20, 'color': '#7f8c8d', 'weight': 'bold', 'family': 'Agency FB'}}, 
-                    gauge={'axis': {'range': [0, 15], 'tickwidth': 2, 'tickfont': {'size': 18, 'family': 'Agency FB'}}, 'bar': {'color': color_aguja, 'thickness': 0.35}, 'steps': [{'range': [0, 5], 'color': "#2ECC71"}, {'range': [5, 10], 'color': "#F1C40F"}, {'range': [10, 15], 'color': "#E74C3C"}]}))
+                fig2 = go.Figure(go.Indicator(mode="gauge+number", value=v_grt, number={'font': {'size': 60, 'color': f2, 'family': 'Agency FB'}, 'valueformat': '.2f'}, domain={'x': [0, 1], 'y': [0, 1]}, title={'text': "Velocidad de Crecimiento<br>(Δ cm/año)", 'font': {'size': 20, 'color': '#7f8c8d', 'weight': 'bold', 'family': 'Agency FB'}}, gauge={'axis': {'range': [0, 15], 'tickwidth': 2, 'tickfont': {'size': 18, 'family': 'Agency FB'}}, 'bar': {'color': color_aguja, 'thickness': 0.35}, 'steps': [{'range': [0, 5], 'color': "#2ECC71"}, {'range': [5, 10], 'color': "#F1C40F"}, {'range': [10, 15], 'color': "#E74C3C"}]}))
                 fig2.update_layout(height=320, margin=dict(l=40, r=40, t=90, b=20), font=plotly_font_config)
                 st.plotly_chart(fig2, use_container_width=True)
 

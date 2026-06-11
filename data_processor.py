@@ -15,36 +15,24 @@ def get_image_bytes(url):
     except:
         return None
 
-# Renombramos a v7 para vaciar la caché
+# FIX: v8 para sincronizar nombres de columnas con la nueva terminología científica
 @st.cache_data(ttl=60)
-def load_data_v7():
+def load_data_v8():
     SHEET_ID = "1FVuYJtctdiwUzsptZOGOZcr7vXe1CMqR4f360kulYME"
     GID_DATOS = "1766718688"
-    
     url_datos = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID_DATOS}"
     url_interceptos = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Interceptos"
     
     try:
         df = pd.read_csv(url_datos)
-        
         try:
             df_int = pd.read_csv(url_interceptos)
-            cols = df_int.columns.astype(str).str.lower()
-            
-            col_edad = df_int.columns[cols.str.contains('edad')][0] if any(cols.str.contains('edad')) else df_int.columns[0]
-            col_b0 = df_int.columns[cols.str.contains('0') | cols.str.contains('intercept')][0] if any(cols.str.contains('0') | cols.str.contains('intercept')) else df_int.columns[1]
-            col_b1 = df_int.columns[cols.str.contains('1') | cols.str.contains('estatura') | cols.str.contains('talla')][0] if any(cols.str.contains('1') | cols.str.contains('estatura') | cols.str.contains('talla')) else df_int.columns[2]
-            col_b2 = df_int.columns[cols.str.contains('2') | cols.str.contains('peso')][0] if any(cols.str.contains('2') | cols.str.contains('peso')) else df_int.columns[3]
-            col_b3 = df_int.columns[cols.str.contains('3') | cols.str.contains('padres') | cols.str.contains('media')][0] if any(cols.str.contains('3') | cols.str.contains('padres') | cols.str.contains('media')) else df_int.columns[4]
-            
-            df_int = df_int[[col_edad, col_b0, col_b1, col_b2, col_b3]].copy()
+            df_int = df_int.iloc[:, 0:5] 
             df_int.columns = ['Edad_Anios', 'B0', 'B1', 'B2', 'B3']
-            
             for c in df_int.columns:
-                if df_int[c].dtype == object:
-                    df_int[c] = df_int[c].astype(str).str.replace(',', '.')
-                df_int[c] = pd.to_numeric(df_int[c], errors='coerce')
-        except Exception as e:
+                df_int[c] = pd.to_numeric(df_int[c].astype(str).str.replace(',', '.'), errors='coerce')
+            df_int = df_int.dropna(subset=['Edad_Anios']).drop_duplicates(subset=['Edad_Anios'], keep='first')
+        except:
             df_int = pd.DataFrame({'Edad_Anios': np.arange(10, 18, 0.5), 'B0': [-12]*16, 'B1': [0.8]*16, 'B2': [0.3]*16, 'B3': [0.4]*16})
 
         cols_limpiar = ['Altura de Pie ', 'Altura sentado', 'Peso', 'Altura del padre', 'Altura de la madre']
@@ -53,13 +41,15 @@ def load_data_v7():
                 df[col] = df[col].astype(str).str.replace(',', '.').str.replace(r'[^0-9.-]', '', regex=True)
                 df[col] = pd.to_numeric(df[col], errors='coerce')
 
-        # FIX FECHAS: Quitamos dayfirst=True para respetar el formato original del CSV de Google (M/D/Y)
-        df['Fecha de Nacimiento'] = pd.to_datetime(df['Fecha de Nacimiento'], format='mixed', errors='coerce')
-        df['Fecha de Evaluacion'] = pd.to_datetime(df['Fecha de Evaluacion'], format='mixed', errors='coerce')
+        df['Fecha de Nacimiento'] = pd.to_datetime(df['Fecha de Nacimiento'], format='%m/%d/%Y', errors='coerce').fillna(
+            pd.to_datetime(df['Fecha de Nacimiento'], format='mixed', errors='coerce')
+        )
+        df['Fecha de Evaluacion'] = pd.to_datetime(df['Fecha de Evaluacion'], format='%d/%m/%Y', errors='coerce').fillna(
+            pd.to_datetime(df['Fecha de Evaluacion'], format='mixed', errors='coerce')
+        )
         
         df['Mes_Año_Eval'] = df['Fecha de Evaluacion'].dt.strftime('%B %Y')
         df['Edad_Decimal'] = (df['Fecha de Evaluacion'] - df['Fecha de Nacimiento']).dt.days / 365.25
-        
         df = df.sort_values(by=['DNI', 'Fecha de Evaluacion'])
         
         if 'URLFOTO' in df.columns:
@@ -82,12 +72,8 @@ def load_data_v7():
         df['Delta_Edad_años'] = df.groupby('DNI')['Edad_Decimal'].diff()
         df['Gr.T'] = np.where(df['Delta_Edad_años'] > 0, df['Delta_Altura_cm'] / df['Delta_Edad_años'], np.nan)
 
-        # =========================================================
-        # FIX M.O HÍBRIDO EXACTO DE DAX Y EDAD BIOLÓGICA
-        # =========================================================
         df['Leg'] = df['Altura de Pie '] - df['Altura sentado']
         df['Pxt'] = np.where(df['Altura de Pie '] > 0, (df['Peso'] / df['Altura de Pie ']) * 100, np.nan)
-        
         mirwald = -9.236 + 0.0002708 * df['Leg'] * df['Altura sentado'] - 0.001663 * df['Edad_Decimal'] * df['Leg'] + 0.007216 * df['Edad_Decimal'] * df['Altura sentado'] + 0.02292 * df['Pxt']
         
         df['AltPadre_cm'] = np.where(df['Altura del padre'] < 3, df['Altura del padre'] * 100, df['Altura del padre'])
@@ -98,16 +84,14 @@ def load_data_v7():
         moore2 = -7.999994 + 0.0036124 * (df['Edad_Decimal'] * df['Altura de Pie '])
         moore_padres = -7.999994 + 0.0036124 * (df['Edad_Decimal'] * df['Predictor_Genetico'])
         
-        # Replica el clamp del DAX
         valid_mirwald = mirwald.between(-3.5, 2.5)
         df['M.O'] = np.where(valid_mirwald, mirwald, np.where(has_parents, moore_padres, moore2))
         
-        # Edad Biológica es la SUMA
-        df['Edad Biológica'] = df['Edad_Decimal'] + df['M.O']
+        # CAMBIO CLAVE: Renombramos la columna biológica para que coincida con lo solicitado
+        df['Edad PHV'] = df['Edad_Decimal'] + df['M.O']
 
         df['EdadParaTabla'] = np.floor(df['Edad_Decimal'] * 2 + 0.5) / 2
         df = pd.merge(df, df_int, left_on='EdadParaTabla', right_on='Edad_Anios', how='left')
-        
         df['Altura_Adulta_Predicha'] = df['B0'] + (df['B1'] * df['Altura de Pie ']) + (df['B2'] * df['Peso']) + (df['B3'] * df['Predictor_Genetico'])
         df['% PHV'] = (df['Altura de Pie '] / df['Altura_Adulta_Predicha']) * 100
 
@@ -120,9 +104,7 @@ def load_data_v7():
 
         df['Decision_Entrenamiento'] = df.apply(categorizar, axis=1)
         df['Iniciales'] = df['Nombre y Apellido'].apply(lambda x: "".join([p[0].upper() for p in str(x).split()[:2]]) if pd.notna(x) else "")
-
         df_latest = df.sort_values('Fecha de Evaluacion').groupby('DNI').tail(1).reset_index(drop=True)
         return df, df_latest
-
-    except Exception as e:
+    except Exception:
         return pd.DataFrame(), pd.DataFrame()
