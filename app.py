@@ -5,7 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from PIL import Image
 import base64
-from data_processor import load_data_v7, get_image_bytes
+from data_processor import load_data_v8, get_image_bytes
 from pdf_generator import create_pdf
 
 # Configuración inicial
@@ -81,61 +81,32 @@ def get_base64_image(img_bytes):
     if img_bytes: return base64.b64encode(img_bytes.getvalue()).decode()
     return ""
 
-# =========================================================
-# CABECERA GLOBAL INSTITUCIONAL MULTINIVEL CON LOGOS CENTRADOS
-# =========================================================
-logo_html = ""
-try:
-    with open("logo.jpeg", "rb") as image_file:
-        encoded_string = base64.b64encode(image_file.read()).decode()
-    logo_html = f"<img src='data:image/jpeg;base64,{encoded_string}' style='width: 110px; margin-bottom: 15px;'>"
-except: pass
-
-futbolista_html = ""
-try:
-    with open("logofutbolista.jpeg", "rb") as image_file:
-        encoded_fut = base64.b64encode(image_file.read()).decode()
-    # Se ajusta la imagen para que acompañe al texto sin romper el renglón
-    futbolista_html = f"<img src='data:image/jpeg;base64,{encoded_fut}' style='height: 38px; vertical-align: middle; margin-left: 10px; margin-bottom: 5px;'>"
-except: pass
-
-col_empty, col_title, col_empty2 = st.columns([1, 8, 1])
+col_empty, col_title, col_logo = st.columns([1, 8, 1])
 with col_title:
-    st.markdown(f"""
+    st.markdown("""
         <div style='margin-bottom: 15px; text-align: center;'>
-            {logo_html}
             <h1 style='color: #1A5B36; font-weight: 900; margin: 0; font-size: 3.5rem; line-height: 1.1; letter-spacing: 1px;'>BIO-BANDING INSTITUCIONAL:</h1>
             <h2 style='color: #27AE60; font-weight: 800; margin: 0; font-size: 2.2rem; line-height: 1.2; letter-spacing: 0.5px;'>ENTRENAMIENTO DEL FUTBOLISTA POR MADURACIÓN BIOLÓGICA</h2>
-            <h3 style='color: #555555; font-weight: 700; margin: 0; font-size: 1.6rem; line-height: 1.2; letter-spacing: 0.5px;'>MATRIZ METODOLÓGICA INTEGRADA: MODELO - FUTBOLISTAS ATLETAS {futbolista_html}</h3>
+            <h3 style='color: #555555; font-weight: 700; margin: 0; font-size: 1.6rem; line-height: 1.2; letter-spacing: 0.5px;'>MATRIZ METODOLÓGICA INTEGRADA: MODELO - FUTBOLISTAS ATLETAS</h3>
         </div>
     """, unsafe_allow_html=True)
+with col_logo:
+    try: st.image('logo.jpeg', width=130)
+    except: pass
 
-df_historico, df_latest = load_data_v7()
+df_historico, df_latest = load_data_v8()
 
 if not df_latest.empty:
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # =========================================================
-    # FIX: Extracción de meses con orden cronológico basado en Datetime
-    # =========================================================
-    fechas_ordenadas = df_historico.sort_values('Fecha de Evaluacion')
-    fechas_cronologicas = fechas_ordenadas['Mes_Año_Eval'].dropna().unique()
-    
     col_f1, col_f2, col_f3, col_f4 = st.columns([1, 1, 1, 1])
-    # FIX: Usamos la lista cronológica directamente (sin `sorted`) para los meses
-    with col_f1: fecha_sel = st.selectbox("FECHA DE EVALUACIÓN", ["Todos"] + list(fechas_cronologicas))
+    with col_f1: fecha_sel = st.selectbox("FECHA DE EVALUACIÓN", ["Todos"] + sorted(df_latest['Mes_Año_Eval'].dropna().unique()))
     with col_f2: pos_sel = st.selectbox("POSICIÓN", ["Todos"] + sorted(df_latest['Posicion'].dropna().unique()))
     with col_f3: cat_sel = st.selectbox("CATEGORÍA", ["Todos"] + sorted(df_latest['Categoria'].dropna().unique()))
     with col_f4: jug_sel = st.selectbox("JUGADOR", ["Todos"] + sorted(df_latest['Nombre y Apellido'].dropna().unique()))
 
-    # FIX: Si elige una fecha, usar df_historico permite ver cómo estaba el jugador en el pasado.
-    if fecha_sel != "Todos":
-        df_base = df_historico[df_historico['Mes_Año_Eval'] == fecha_sel].copy()
-        df_base = df_base.sort_values('Fecha de Evaluacion').groupby('DNI').tail(1).reset_index(drop=True)
-    else:
-        df_base = df_latest.copy()
-
-    df_filtrado = df_base.copy()
+    df_filtrado = df_latest.copy()
+    if fecha_sel != "Todos": df_filtrado = df_filtrado[df_filtrado['Mes_Año_Eval'] == fecha_sel]
     if pos_sel != "Todos": df_filtrado = df_filtrado[df_filtrado['Posicion'] == pos_sel]
     if cat_sel != "Todos": df_filtrado = df_filtrado[df_filtrado['Categoria'] == cat_sel]
     if jug_sel != "Todos": df_filtrado = df_filtrado[df_filtrado['Nombre y Apellido'] == jug_sel]
@@ -241,8 +212,7 @@ if not df_latest.empty:
                 """, unsafe_allow_html=True)
 
         st.markdown("<hr>", unsafe_allow_html=True)
-        # FIX: Renderizado de Titulo con Icono logofutbolista inyectado
-        st.markdown(f"<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>Cinética de Crecimiento vs. Años al PHV {futbolista_html}</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>Cinética de Crecimiento vs. Años al PHV</h3>", unsafe_allow_html=True)
         df_plot = df_filtrado.dropna(subset=['M.O']) 
         if not df_plot.empty:
             fig = px.scatter(df_plot, x='M.O', y='Gr.T', hover_name='Nombre y Apellido', hover_data={'Iniciales': True, 'M.O': ':.2f', 'Gr.T': ':.2f', 'Decision_Entrenamiento': True}, labels={'M.O': 'Tiempo al PHV (Años)', 'Gr.T': 'Velocidad de Crecimiento (cm/año)'})
@@ -261,7 +231,7 @@ if not df_latest.empty:
         st.markdown("<br>", unsafe_allow_html=True)
         if not data_jug.empty:
             v_edad = f"{data_jug['Edad_Decimal'].values[0]:.2f}"
-            v_edad_phv = f"{data_jug['Edad PHV'].values[0]:.2f}"
+            v_edad_bio = f"{data_jug['Edad Biológica'].values[0]:.2f}"
             v_etapa = "Normal" if data_jug['M.O'].values[0] >= 0 else "Tardía"
             v_alt = f"{data_jug['Altura de Pie '].values[0]:.1f}"
             v_peso = f"{data_jug['Peso'].values[0]:.2f}"
@@ -270,7 +240,7 @@ if not df_latest.empty:
             v_phv = data_jug['% PHV'].values[0] if not pd.isna(data_jug['% PHV'].values[0]) else 0
             v_grt = grt if not pd.isna(grt) else 0
         else:
-            v_edad, v_edad_phv, v_etapa, v_alt, v_peso, v_ritmo = "--", "(Blank)", "(Blank)", "(Blank)", "(Blank)", "(Blank)"
+            v_edad, v_edad_bio, v_etapa, v_alt, v_peso, v_ritmo = "--", "(Blank)", "(Blank)", "(Blank)", "(Blank)", "(Blank)"
             v_phv, v_grt, grt = 0, 0, np.nan 
 
         color_phv_gauge = "#2ECC71" if v_phv < 85 else ("#F1C40F" if v_phv < 95 else "#E74C3C")
@@ -280,7 +250,7 @@ if not df_latest.empty:
         with col_left:
             c1, c2, c3 = st.columns(3)
             c1.markdown(f"<div class='kpi-card'><p class='kpi-val'>{v_edad}</p><p class='kpi-label'>Edad Cronológica</p></div>", unsafe_allow_html=True)
-            c2.markdown(f"<div class='kpi-card'><p class='kpi-val'>{v_edad_phv}</p><p class='kpi-label'>Edad PHV</p></div>", unsafe_allow_html=True)
+            c2.markdown(f"<div class='kpi-card'><p class='kpi-val'>{v_edad_bio}</p><p class='kpi-label'>Edad Biológica</p></div>", unsafe_allow_html=True)
             c3.markdown(f"<div class='kpi-card'><p class='kpi-val'>{v_etapa}</p><p class='kpi-label'>Ritmo Madurativo</p></div>", unsafe_allow_html=True)
             c4, c5, c6 = st.columns(3)
             c4.markdown(f"<div class='kpi-card'><p class='kpi-val'>{v_alt}</p><p class='kpi-label'>Talla (cm)</p></div>", unsafe_allow_html=True)
