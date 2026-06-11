@@ -167,16 +167,22 @@ if not df_latest.empty:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # NUEVOS NOMBRES DE PESTAÑAS
     tab_dep, tab_perf, tab_con = st.tabs(["👥 Matriz Plantel", "👤 Perfil Individual", "🌍 Monitor de Maduración"])
 
     plotly_font_config = dict(size=20, color="#333", family="Agency FB, Segoe UI, Arial")
     plotly_hover_config = dict(font_size=22, font_family="Agency FB, Segoe UI, Arial")
 
+    def style_dataframe(df_styled, font_size="16px"):
+        df_styled = df_styled.set_properties(**{'font-size': font_size, 'padding': '6px 8px', 'font-family': 'Agency FB', 'text-align': 'center'})
+        df_styled = df_styled.set_table_styles([
+            {'selector': 'th', 'props': [('font-size', font_size), ('font-family', 'Agency FB'), ('white-space', 'pre-wrap'), ('text-align', 'center')]}
+        ])
+        return df_styled
+
     def generar_formato(df):
         fmt = {}
         for c in df.columns:
-            if c in ['Edad', 'Edad\nBiológica', 'Gr.T', 'M.O', '%\nMadurez', '% PHV']:
+            if c in ['Edad', 'Edad\nBiológica', 'Edad\nPHV', 'Gr.T', 'M.O', '%\nMadurez', '% PHV', 'Maturity Offset\n(Años al PHV)', 'Velocidad de\nCrecimiento\n(Δ cm/año)']:
                 fmt[c] = lambda x: f"{x:.2f}" if pd.notna(x) else ""
             elif c in ['Altura\nActual (cm)', 'Altura Adulta\nPredicha (cm)', 'Alt.(cm)', 'Alt.Pred']:
                 fmt[c] = lambda x: f"{x:.1f}" if pd.notna(x) else ""
@@ -212,8 +218,6 @@ if not df_latest.empty:
                 fig_bar.add_hline(y=95, line_dash="dash", line_color="#E74C3C", line_width=2)
                 fig_bar.update_layout(yaxis_range=[60, 105], plot_bgcolor='white', margin=dict(t=20, b=20), xaxis_title="", font=plotly_font_config, hoverlabel=plotly_hover_config)
                 st.plotly_chart(fig_bar, use_container_width=True)
-                
-                # NUEVO: Nota descriptiva debajo del gráfico de barras
                 st.markdown("<p style='text-align: center; font-size: 1.2rem; color: #7f8c8d; font-family: \"Agency FB\"; margin-top: -15px;'><i>* Color automatizado en las barras de este gráfico (ej. Verde para pre PHV &lt;84.9%, amarillo para circa – PHV 85% - 94.9%, rojo para post – PHV &gt;95%), para acelerar la identificación visual de riesgo lesional durante el análisis.</i></p>", unsafe_allow_html=True)
 
         st.markdown("<hr>", unsafe_allow_html=True)
@@ -275,7 +279,6 @@ if not df_latest.empty:
             font_color_2 = "white" if (jug_sel == "Todos" or pd.isna(grt)) else "#1A5B36"
 
             with g1:
-                # FIX: Título en 2 líneas usando <br> y ajustando márgenes
                 fig1 = go.Figure(go.Indicator(
                     mode="gauge+number", value=v_phv, 
                     number={'font': {'size': 60, 'color': font_color_1, 'family': 'Agency FB'}, 'valueformat': '.1f'}, 
@@ -287,7 +290,6 @@ if not df_latest.empty:
                 st.plotly_chart(fig1, use_container_width=True)
                 
             with g2:
-                # FIX: Título en 2 líneas usando <br> y ajustando márgenes
                 color_aguja = "rgba(0,0,0,0)" if pd.isna(grt) or jug_sel == "Todos" else "#1A5B36"
                 fig2 = go.Figure(go.Indicator(
                     mode="gauge+number", value=v_grt, 
@@ -330,37 +332,45 @@ if not df_latest.empty:
             if val < 9: return 'background-color: #E74C3C; color: white; font-weight:bold;'
             return 'background-color: #8E0000; color: white; font-weight:bold;'
         def color_phv(val):
-            if pd.isna(val): return ''
-            if val < 85: return 'background-color: #2ECC71; color: black; font-weight:bold;'
-            if val < 88: return 'background-color: #F1C40F; color: black; font-weight:bold;'
-            if val <= 92: return 'background-color: #E74C3C; color: white; font-weight:bold;'
-            if val <= 97: return 'background-color: #E67E22; color: white; font-weight:bold;'
-            return 'background-color: #2ECC71; color: black; font-weight:bold;'
+            if pd.isna(val) or val == "": return ''
+            try:
+                v = float(val)
+                if v < 85: return 'background-color: #2ECC71; color: black; font-weight:bold;'
+                if v < 95: return 'background-color: #F1C40F; color: black; font-weight:bold;'
+                return 'background-color: #E74C3C; color: white; font-weight:bold;'
+            except:
+                return ''
 
         col1, col2, col3 = st.columns(3)
+        # Contenedor con altura fija para los títulos largos de 2 o 3 renglones
+        title_style = "<div style='height: 90px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 10px;'><h4 style='margin:0; text-align: center; color: #1A5B36; font-weight: 800; font-family: \"Agency FB\"; font-size: 1.6rem; line-height: 1.1;'>{}</h4></div>"
+        
         with col1:
-            st.markdown("<div style='height: 60px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 10px;'><h4 style='margin:0; color: #1A5B36; font-weight: 800; font-family: \"Agency FB\"; font-size: 1.8rem;'>Jugadores cercanos a la altura PHV</h4></div>", unsafe_allow_html=True)
-            df_t1 = df_filtrado[['Nombre y Apellido', 'Edad_Decimal', 'Edad Biológica', 'M.O']].copy()
+            st.markdown(title_style.format("Ventana Crítica:<br>Fase Circa - PHV"), unsafe_allow_html=True)
+            df_t1 = df_filtrado[['Nombre y Apellido', 'Edad_Decimal', 'Edad PHV', 'M.O']].copy()
             df_t1['Abs_MO'] = df_t1['M.O'].abs()
-            df_t1_disp = df_t1.sort_values('Abs_MO').drop(columns=['Abs_MO']).rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'Edad Biológica': 'Edad\nBiológica'})
-            styled_t1 = df_t1_disp.style.map(color_mo, subset=['M.O']).format(generar_formato(df_t1_disp))
+            # FIX: Renombrado a Lenguaje Bio-Banding
+            df_t1_disp = df_t1.sort_values('Abs_MO').drop(columns=['Abs_MO']).rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'Edad PHV': 'Edad\nPHV', 'M.O': 'Maturity Offset\n(Años al PHV)'})
+            styled_t1 = df_t1_disp.style.map(color_mo, subset=['Maturity Offset\n(Años al PHV)']).format(generar_formato(df_t1_disp))
             render_html_table(styled_t1, height="600px")
             
         with col2:
-            st.markdown("<div style='height: 60px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 10px;'><h4 style='margin:0; color: #1A5B36; font-weight: 800; font-family: \"Agency FB\"; font-size: 1.8rem;'>Jugadores que todavia siguen creciendo</h4></div>", unsafe_allow_html=True)
-            df_t2 = df_filtrado[df_filtrado['M.O'] < 0][['Nombre y Apellido', 'Edad_Decimal', 'Edad Biológica', '% PHV', 'M.O', 'Gr.T']].copy()
-            df_t2_disp = df_t2.sort_values('% PHV').rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'Edad Biológica': 'Edad\nBiológica', '% PHV': '%\nMadurez'})
+            st.markdown(title_style.format("Estatus Madurativo:<br>Fase Pre - PHV"), unsafe_allow_html=True)
+            df_t2 = df_filtrado[df_filtrado['M.O'] < 0][['Nombre y Apellido', 'Edad_Decimal', 'Edad PHV', '% PHV', 'M.O', 'Gr.T']].copy()
+            # FIX: Renombrado a Lenguaje Bio-Banding
+            df_t2_disp = df_t2.sort_values('% PHV').rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'Edad PHV': 'Edad\nPHV', '% PHV': '%\nMadurez', 'M.O': 'Maturity Offset\n(Años al PHV)', 'Gr.T': 'Velocidad de\nCrecimiento\n(Δ cm/año)'})
             styled_t2 = df_t2_disp.style.map(color_phv, subset=['%\nMadurez']).format(generar_formato(df_t2_disp))
             render_html_table(styled_t2, height="600px")
             
         with col3:
-            st.markdown("<div style='height: 60px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 10px;'><h4 style='margin:0; color: #1A5B36; font-weight: 800; font-family: \"Agency FB\"; font-size: 1.8rem;'>Mas altas de Crecimiento</h4></div>", unsafe_allow_html=True)
+            st.markdown(title_style.format("Alerta Neuromuscular:<br>Máxima Velocidad de Crecimiento<br>(Δ cm/año)"), unsafe_allow_html=True)
             df_t3 = df_filtrado[['Nombre y Apellido', 'Edad_Decimal', 'M.O', 'Gr.T']].copy()
-            df_t3_disp = df_t3.sort_values('Gr.T', ascending=False).rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad'})
-            styled_t3 = df_t3_disp.style.map(color_gt, subset=['Gr.T']).format(generar_formato(df_t3_disp))
+            # FIX: Renombrado a Lenguaje Bio-Banding
+            df_t3_disp = df_t3.sort_values('Gr.T', ascending=False).rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'M.O': 'Maturity Offset\n(Años al PHV)', 'Gr.T': 'Velocidad de\nCrecimiento\n(Δ cm/año)'})
+            styled_t3 = df_t3_disp.style.map(color_gt, subset=['Velocidad de\nCrecimiento\n(Δ cm/año)']).format(generar_formato(df_t3_disp))
             render_html_table(styled_t3, height="600px")
 
-        st.markdown("<h3 style='text-align: center; color: #1A5B36; margin-top: 40px; font-weight: 800; font-size: 2.2rem;'>Análisis Global de Desarrollo</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; color: #1A5B36; margin-top: 40px; font-weight: 800; font-size: 2.2rem;'>Matriz Bivariada: Cinética de Crecimiento vs. Tiempo al PHV</h3>", unsafe_allow_html=True)
         df_plot2 = df_filtrado.dropna(subset=['M.O'])
         if not df_plot2.empty:
             fig_c = px.scatter(df_plot2, x='M.O', y='Gr.T', hover_name='Nombre y Apellido', hover_data={'Iniciales': True, 'M.O': ':.2f', 'Gr.T': ':.2f', 'Decision_Entrenamiento': True}, labels={'M.O': 'Tiempo al PHV (Años)', 'Gr.T': 'Velocidad de Crecimiento (cm/año)'})
@@ -369,6 +379,7 @@ if not df_latest.empty:
             fig_c.add_vline(x=0, line_dash="dash", line_color="#E74C3C", line_width=2)
             if jug_sel != "Todos" and not data_jug.empty: fig_c.add_scatter(x=data_jug['M.O'], y=data_jug['Gr.T'], mode='markers', marker=dict(size=25, color='#F1C40F', symbol='star', line=dict(width=2, color='black')), name=jug_sel)
             fig_c.update_layout(xaxis_range=[-3, 3], yaxis_range=[0, 20], plot_bgcolor='white', height=550, font=plotly_font_config, hoverlabel=plotly_hover_config)
-            fig_c.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_font=dict(size=20, weight='bold'), title_text="Tiempo al PHV (Años)")
-            fig_c.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_font=dict(size=20, weight='bold'), title_text="Velocidad de Crecimiento (cm/año)")
+            # FIX: Nombres de Ejes Actualizados
+            fig_c.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_text="Tiempo al PHV (Años)", title_font=dict(size=20, weight='bold'))
+            fig_c.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_text="Velocidad de Crecimiento (Δ cm/año)", title_font=dict(size=20, weight='bold'))
             st.plotly_chart(fig_c, use_container_width=True)
