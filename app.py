@@ -5,7 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from PIL import Image
 import base64
-from data_processor import load_data_v8, get_image_bytes
+from data_processor import load_data_v9, get_image_bytes
 from pdf_generator import create_pdf
 
 # Configuración inicial
@@ -36,14 +36,14 @@ st.markdown("""
     .stTabs [aria-selected="true"] { background-color: #27AE60 !important; color: white !important; border-color: #27AE60 !important; }
     
     .kpi-card {
-        background-color: #ffffff; border-radius: 15px; padding: 15px 15px;
+        background-color: #ffffff; border-radius: 15px; padding: 20px 20px;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); border-left: 8px solid #27AE60;
         transition: transform 0.3s ease, box-shadow 0.3s ease; margin-bottom: 20px; 
         border-right: 1px solid #f0f0f0; border-top: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0;
     }
     .kpi-card:hover { transform: translateY(-8px); box-shadow: 0 12px 30px rgba(39, 174, 96, 0.2); }
-    .kpi-val { font-size: 3.2rem !important; font-weight: 900; color: #1A5B36; margin: 0; line-height: 1; }
-    .kpi-label { font-size: 1.1rem !important; color: #7f8c8d; margin: 0; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-top: 5px; white-space: normal; line-height: 1.1; }
+    .kpi-val { font-size: 3.5rem !important; font-weight: 900; color: #1A5B36; margin: 0; line-height: 1; }
+    .kpi-label { font-size: 1.4rem !important; color: #7f8c8d; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-top: 8px; white-space: normal; line-height: 1.1; }
     
     .sticky-player {
         position: fixed; top: 15px; right: 25px; background-color: rgba(255, 255, 255, 0.95);
@@ -110,18 +110,32 @@ with col_title:
         </div>
     """, unsafe_allow_html=True)
 
-df_historico, df_latest = load_data_v8()
+df_historico, df_latest = load_data_v9()
 
 if not df_latest.empty:
     st.markdown("<br>", unsafe_allow_html=True)
+    
+    # =========================================================
+    # FIX: Extracción de meses con orden cronológico basado en Datetime
+    # =========================================================
+    fechas_ordenadas = df_historico.sort_values('Fecha de Evaluacion')
+    fechas_cronologicas = fechas_ordenadas['Mes_Año_Eval'].dropna().unique()
+    
     col_f1, col_f2, col_f3, col_f4 = st.columns([1, 1, 1, 1])
-    with col_f1: fecha_sel = st.selectbox("FECHA DE EVALUACIÓN", ["Todos"] + sorted(df_latest['Mes_Año_Eval'].dropna().unique()))
+    # FIX: Usamos la lista cronológica directamente (sin `sorted`) para los meses
+    with col_f1: fecha_sel = st.selectbox("FECHA DE EVALUACIÓN", ["Todos"] + list(fechas_cronologicas))
     with col_f2: pos_sel = st.selectbox("POSICIÓN", ["Todos"] + sorted(df_latest['Posicion'].dropna().unique()))
     with col_f3: cat_sel = st.selectbox("CATEGORÍA", ["Todos"] + sorted(df_latest['Categoria'].dropna().unique()))
     with col_f4: jug_sel = st.selectbox("JUGADOR", ["Todos"] + sorted(df_latest['Nombre y Apellido'].dropna().unique()))
 
-    df_filtrado = df_latest.copy()
-    if fecha_sel != "Todos": df_filtrado = df_filtrado[df_filtrado['Mes_Año_Eval'] == fecha_sel]
+    # FIX: Si elige una fecha, usar df_historico permite ver cómo estaba el jugador en el pasado.
+    if fecha_sel != "Todos":
+        df_base = df_historico[df_historico['Mes_Año_Eval'] == fecha_sel].copy()
+        df_base = df_base.sort_values('Fecha de Evaluacion').groupby('DNI').tail(1).reset_index(drop=True)
+    else:
+        df_base = df_latest.copy()
+
+    df_filtrado = df_base.copy()
     if pos_sel != "Todos": df_filtrado = df_filtrado[df_filtrado['Posicion'] == pos_sel]
     if cat_sel != "Todos": df_filtrado = df_filtrado[df_filtrado['Categoria'] == cat_sel]
     if jug_sel != "Todos": df_filtrado = df_filtrado[df_filtrado['Nombre y Apellido'] == jug_sel]
