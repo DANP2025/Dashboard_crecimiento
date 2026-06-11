@@ -43,7 +43,7 @@ st.markdown("""
     }
     .kpi-card:hover { transform: translateY(-8px); box-shadow: 0 12px 30px rgba(39, 174, 96, 0.2); }
     .kpi-val { font-size: 3.5rem !important; font-weight: 900; color: #1A5B36; margin: 0; line-height: 1; }
-    .kpi-label { font-size: 1.4rem !important; color: #7f8c8d; margin: 0; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-top: 8px; white-space: normal; line-height: 1.1; }
+    .kpi-label { font-size: 1.4rem !important; color: #7f8c8d; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-top: 8px; white-space: normal; line-height: 1.1; }
     
     .sticky-player {
         position: fixed; top: 15px; right: 25px; background-color: rgba(255, 255, 255, 0.95);
@@ -187,17 +187,17 @@ if not df_latest.empty:
     # ==========================================
     with tab_dep:
         st.markdown("<br>", unsafe_allow_html=True)
-        col_tabla, col_grafico = st.columns([1.1, 1])
+        col_tabla, col_grafico = st.columns([1.6, 1])
         with col_tabla:
             st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>MATRIZ ANTROPOMÉTRICA Y MADURATIVA</h3>", unsafe_allow_html=True)
             df_display = df_filtrado.rename(columns={
-                'Nombre y Apellido': 'Nombre',
+                'Nombre y Apellido': 'Nombre y\nApellido',
                 'Edad_Decimal': 'Edad', 
                 'Edad Biológica': 'Edad\nBiológica',
                 'Altura de Pie ': 'Altura\nActual (cm)', 
                 'Altura_Adulta_Predicha': 'Altura Adulta\nPredicha (cm)'
             })
-            cols_table = ['Nombre', 'Edad', 'Edad\nBiológica', 'Altura\nActual (cm)', 'Altura Adulta\nPredicha (cm)', 'Gr.T', 'M.O']
+            cols_table = ['Nombre y\nApellido', 'Edad', 'Edad\nBiológica', 'Altura\nActual (cm)', 'Altura Adulta\nPredicha (cm)', 'Gr.T', 'M.O']
             styled_df = df_display[cols_table].style.format(generar_formato(df_display[cols_table]))
             render_html_table(styled_df, height="500px")
 
@@ -212,6 +212,9 @@ if not df_latest.empty:
                 fig_bar.add_hline(y=95, line_dash="dash", line_color="#E74C3C", line_width=2)
                 fig_bar.update_layout(yaxis_range=[60, 105], plot_bgcolor='white', margin=dict(t=20, b=20), xaxis_title="", font=plotly_font_config, hoverlabel=plotly_hover_config)
                 st.plotly_chart(fig_bar, use_container_width=True)
+                
+                # NUEVO: Nota descriptiva debajo del gráfico de barras
+                st.markdown("<p style='text-align: center; font-size: 1.2rem; color: #7f8c8d; font-family: \"Agency FB\"; margin-top: -15px;'><i>* Color automatizado en las barras de este gráfico (ej. Verde para pre PHV &lt;84.9%, amarillo para circa – PHV 85% - 94.9%, rojo para post – PHV &gt;95%), para acelerar la identificación visual de riesgo lesional durante el análisis.</i></p>", unsafe_allow_html=True)
 
         st.markdown("<hr>", unsafe_allow_html=True)
         st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>Cinética de Crecimiento vs. Años al PHV</h3>", unsafe_allow_html=True)
@@ -339,25 +342,25 @@ if not df_latest.empty:
             st.markdown("<div style='height: 60px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 10px;'><h4 style='margin:0; color: #1A5B36; font-weight: 800; font-family: \"Agency FB\"; font-size: 1.8rem;'>Jugadores cercanos a la altura PHV</h4></div>", unsafe_allow_html=True)
             df_t1 = df_filtrado[['Nombre y Apellido', 'Edad_Decimal', 'Edad Biológica', 'M.O']].copy()
             df_t1['Abs_MO'] = df_t1['M.O'].abs()
-            df_t1_disp = df_t1.sort_values('Abs_MO').head(10).drop(columns=['Abs_MO']).rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'Edad Biológica': 'Edad\nBiológica'})
+            df_t1_disp = df_t1.sort_values('Abs_MO').drop(columns=['Abs_MO']).rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'Edad Biológica': 'Edad\nBiológica'})
             styled_t1 = df_t1_disp.style.map(color_mo, subset=['M.O']).format(generar_formato(df_t1_disp))
             render_html_table(styled_t1, height="600px")
             
         with col2:
             st.markdown("<div style='height: 60px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 10px;'><h4 style='margin:0; color: #1A5B36; font-weight: 800; font-family: \"Agency FB\"; font-size: 1.8rem;'>Jugadores que todavia siguen creciendo</h4></div>", unsafe_allow_html=True)
             df_t2 = df_filtrado[df_filtrado['M.O'] < 0][['Nombre y Apellido', 'Edad_Decimal', 'Edad Biológica', '% PHV', 'M.O', 'Gr.T']].copy()
-            df_t2_disp = df_t2.sort_values('% PHV').head(10).rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'Edad Biológica': 'Edad\nBiológica', '% PHV': '%\nMadurez'})
+            df_t2_disp = df_t2.sort_values('% PHV').rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'Edad Biológica': 'Edad\nBiológica', '% PHV': '%\nMadurez'})
             styled_t2 = df_t2_disp.style.map(color_phv, subset=['%\nMadurez']).format(generar_formato(df_t2_disp))
             render_html_table(styled_t2, height="600px")
             
         with col3:
             st.markdown("<div style='height: 60px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 10px;'><h4 style='margin:0; color: #1A5B36; font-weight: 800; font-family: \"Agency FB\"; font-size: 1.8rem;'>Mas altas de Crecimiento</h4></div>", unsafe_allow_html=True)
             df_t3 = df_filtrado[['Nombre y Apellido', 'Edad_Decimal', 'M.O', 'Gr.T']].copy()
-            df_t3_disp = df_t3.sort_values('Gr.T', ascending=False).head(10).rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad'})
+            df_t3_disp = df_t3.sort_values('Gr.T', ascending=False).rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad'})
             styled_t3 = df_t3_disp.style.map(color_gt, subset=['Gr.T']).format(generar_formato(df_t3_disp))
             render_html_table(styled_t3, height="600px")
 
-        st.markdown("<h3 style='text-align: center; color: #1A5B36; margin-top: 40px; font-weight: 800; font-size: 2.2rem;'>Cinética de Crecimiento vs. Años al PHV</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; color: #1A5B36; margin-top: 40px; font-weight: 800; font-size: 2.2rem;'>Análisis Global de Desarrollo</h3>", unsafe_allow_html=True)
         df_plot2 = df_filtrado.dropna(subset=['M.O'])
         if not df_plot2.empty:
             fig_c = px.scatter(df_plot2, x='M.O', y='Gr.T', hover_name='Nombre y Apellido', hover_data={'Iniciales': True, 'M.O': ':.2f', 'Gr.T': ':.2f', 'Decision_Entrenamiento': True}, labels={'M.O': 'Tiempo al PHV (Años)', 'Gr.T': 'Velocidad de Crecimiento (cm/año)'})
