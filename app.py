@@ -5,7 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from PIL import Image
 import base64
-from data_processor import load_data_v8, get_image_bytes
+from data_processor import load_data_v9, get_image_bytes
 from pdf_generator import create_pdf
 
 # Configuración inicial
@@ -94,7 +94,7 @@ with col_logo:
     try: st.image('logo.jpeg', width=130)
     except: pass
 
-df_historico, df_latest = load_data_v8()
+df_historico, df_latest = load_data_v9()
 
 if not df_latest.empty:
     st.markdown("<br>", unsafe_allow_html=True)
