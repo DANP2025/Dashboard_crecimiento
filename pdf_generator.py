@@ -93,8 +93,15 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     
     if not data_jug.empty:
         v_edad = f"{data_jug['Edad_Decimal'].values[0]:.2f}"
-        # FIX KEYERROR: Usar la nueva columna 'Edad PHV' en vez de 'Edad Biológica'
-        v_edad_bio = f"{data_jug['Edad PHV'].values[0]:.2f}"
+        
+        # FIX ROBUSTO DE COLUMN NAMES: Buscamos Edad PHV o Edad Biológica sin arrojar KeyError
+        if 'Edad PHV' in data_jug.columns:
+            v_edad_phv = f"{data_jug['Edad PHV'].values[0]:.2f}"
+        elif 'Edad Biológica' in data_jug.columns:
+            v_edad_phv = f"{data_jug['Edad Biológica'].values[0]:.2f}"
+        else:
+            v_edad_phv = "--"
+            
         v_etapa = "Normal" if data_jug['M.O'].values[0] >= 0 else "Tardía"
         v_alt = f"{data_jug['Altura de Pie '].values[0]:.1f}"
         v_peso = f"{data_jug['Peso'].values[0]:.2f}"
@@ -103,7 +110,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         v_phv = data_jug['% PHV'].values[0] if pd.notna(data_jug['% PHV'].values[0]) else 0
         v_grt = grt if pd.notna(grt) else 0
     else:
-        v_edad, v_edad_bio, v_etapa, v_alt, v_peso, v_ritmo, v_phv, v_grt = "--", "--", "--", "--", "--", "--", 0, 0
+        v_edad, v_edad_phv, v_etapa, v_alt, v_peso, v_ritmo, v_phv, v_grt = "--", "--", "--", "--", "--", "--", 0, 0
 
     def draw_kpi(x, y, label, value):
         pdf.set_xy(x, y)
@@ -121,12 +128,11 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         pdf.set_text_color(0, 0, 0)
 
     draw_kpi(15, 80, "EDAD CRONOLOGICA", v_edad)
-    # FIX: Titulo KPI a EDAD PHV
-    draw_kpi(77.5, 80, "EDAD PHV", v_edad_bio)
+    draw_kpi(77.5, 80, "EDAD PHV", v_edad_phv)
     draw_kpi(140, 80, "RITMO MADURATIVO", v_etapa)
     draw_kpi(15, 103, "TALLA (CM)", v_alt)
     draw_kpi(77.5, 103, "MASA CORPORAL", v_peso)
-    draw_kpi(140, 103, "VEL. CRECIMIENTO (CM/A\xd1O)", v_ritmo)
+    draw_kpi(140, 103, "VEL. CRECIMIENTO (CM/AÑO)", v_ritmo)
 
     color_phv = "#2ECC71" if v_phv < 85 else ("#F1C40F" if v_phv < 95 else "#E74C3C")
     fig_g = go.Figure()
@@ -182,9 +188,12 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     pdf.ln()
 
     pdf.set_font(font_name, "", 12)
-    df_t1 = df_filtrado.copy()
+    
+    # FIX: Extracción de datos sin dependencia del nombre de columna de edad
+    df_t1 = df_filtrado[['Nombre y Apellido', 'M.O']].copy()
     df_t1['Abs_MO'] = df_t1['M.O'].abs()
-    top_phv = df_t1.sort_values('Abs_MO').head(10)[['Nombre y Apellido', 'M.O']]
+    top_phv = df_t1.sort_values('Abs_MO').head(10)
+    
     top_siguen = df_filtrado[df_filtrado['M.O'] < 0].sort_values('% PHV').head(10)[['Nombre y Apellido', '% PHV']]
     top_crec = df_filtrado.sort_values('Gr.T', ascending=False).head(10)[['Nombre y Apellido', 'Gr.T']]
     
