@@ -176,8 +176,8 @@ if not df_latest.empty:
         col_tabla, col_grafico = st.columns([1.6, 1])
         with col_tabla:
             st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>MATRIZ ANTROPOMÉTRICA Y MADURATIVA</h3>", unsafe_allow_html=True)
-            # FIX: Renombrado de Gr.T y M.O
-            df_display = df_filtrado.rename(columns={
+            # FIX: Ordenamiento A-Z por Nombre y Apellido
+            df_display = df_filtrado.sort_values('Nombre y Apellido').rename(columns={
                 'Nombre y Apellido': 'Nombre y\nApellido',
                 'Edad_Decimal': 'Edad', 
                 'Edad PHV': 'Edad\nPHV',
@@ -317,19 +317,22 @@ if not df_latest.empty:
             st.markdown(title_style.format("Ventana Crítica:<br>Fase Circa - PHV"), unsafe_allow_html=True)
             df_t1 = df_filtrado[['Nombre y Apellido', 'Edad_Decimal', 'Edad PHV', 'M.O']].copy()
             df_t1['Abs_MO'] = df_t1['M.O'].abs()
-            df_t1_disp = df_t1.sort_values('Abs_MO').drop(columns=['Abs_MO']).rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'Edad PHV': 'Edad\nPHV', 'M.O': 'Maturity Offset\n(Años al PHV)'})
+            # FIX: Ordenamiento A-Z por Nombre y Apellido
+            df_t1_disp = df_t1.sort_values('Nombre y Apellido').drop(columns=['Abs_MO']).rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'Edad PHV': 'Edad\nPHV', 'M.O': 'Maturity Offset\n(Años al PHV)'})
             render_html_table(df_t1_disp.style.map(color_mo, subset=['Maturity Offset\n(Años al PHV)']).format(generar_formato(df_t1_disp)), height="600px")
             
         with col2:
             st.markdown(title_style.format("Estatus Madurativo:<br>Fase Pre - PHV"), unsafe_allow_html=True)
             df_t2 = df_filtrado[df_filtrado['M.O'] < 0][['Nombre y Apellido', 'Edad_Decimal', 'Edad PHV', '% PHV', 'M.O', 'Gr.T']].copy()
-            df_t2_disp = df_t2.sort_values('% PHV').rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'Edad PHV': 'Edad\nPHV', '% PHV': '%\nMadurez', 'M.O': 'Maturity Offset\n(Años al PHV)', 'Gr.T': 'Velocidad de\nCrecimiento\n(Δ cm/año)'})
+            # FIX: Ordenamiento A-Z por Nombre y Apellido
+            df_t2_disp = df_t2.sort_values('Nombre y Apellido').rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'Edad PHV': 'Edad\nPHV', '% PHV': '%\nMadurez', 'M.O': 'Maturity Offset\n(Años al PHV)', 'Gr.T': 'Velocidad de\nCrecimiento\n(Δ cm/año)'})
             render_html_table(df_t2_disp.style.map(color_phv_table, subset=['%\nMadurez']).format(generar_formato(df_t2_disp)), height="600px")
             
         with col3:
             st.markdown(title_style.format("Alerta Neuromuscular:<br>Máxima Velocidad de Crecimiento<br>(Δ cm/año)"), unsafe_allow_html=True)
             df_t3 = df_filtrado[['Nombre y Apellido', 'Edad_Decimal', 'M.O', 'Gr.T']].copy()
-            df_t3_disp = df_t3.sort_values('Gr.T', ascending=False).rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'M.O': 'Maturity Offset\n(Años al PHV)', 'Gr.T': 'Velocidad de\nCrecimiento\n(Δ cm/año)'})
+            # FIX: Ordenamiento A-Z por Nombre y Apellido
+            df_t3_disp = df_t3.sort_values('Nombre y Apellido').rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'M.O': 'Maturity Offset\n(Años al PHV)', 'Gr.T': 'Velocidad de\nCrecimiento\n(Δ cm/año)'})
             render_html_table(df_t3_disp.style.map(color_gt, subset=['Velocidad de\nCrecimiento\n(Δ cm/año)']).format(generar_formato(df_t3_disp)), height="600px")
 
         st.markdown("<h3 style='text-align: center; color: #1A5B36; margin-top: 40px; font-weight: 800; font-size: 2.2rem;'>Matriz Bivariada: Cinética de Crecimiento vs. Tiempo al PHV</h3>", unsafe_allow_html=True)
