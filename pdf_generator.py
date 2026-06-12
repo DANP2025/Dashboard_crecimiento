@@ -276,7 +276,8 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     add_page_header("Monitor de Maduración")
     
     pdf.set_y(50)
-    df_bar = df_filtrado.dropna(subset=['% PHV']).sort_values('% PHV', ascending=False)
+    # FIX: Ordenamos df_bar alfabéticamente (A-Z) para sincronizar visualmente con la tabla
+    df_bar = df_filtrado.dropna(subset=['% PHV']).sort_values('Nombre y Apellido')
     if not df_bar.empty:
         colors_b = ['#2ECC71' if val < 85 else ('#F1C40F' if val < 95 else '#E74C3C') for val in df_bar['% PHV']]
         fig_b = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', title="Distribución del Estatus Madurativo (%PAH)")

@@ -192,7 +192,8 @@ if not df_latest.empty:
 
         with col_grafico:
             st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>Distribución del Estatus Madurativo (%PAH)</h3>", unsafe_allow_html=True)
-            df_bar = df_filtrado.dropna(subset=['% PHV']).sort_values('% PHV', ascending=False)
+            # FIX: Ordenamos df_bar alfabéticamente (A-Z) para sincronizar visualmente con la tabla
+            df_bar = df_filtrado.dropna(subset=['% PHV']).sort_values('Nombre y Apellido')
             if not df_bar.empty:
                 bar_colors = ['#2ECC71' if v < 85 else ('#F1C40F' if v < 95 else '#E74C3C') for v in df_bar['% PHV']]
                 fig_bar = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', text='% PHV')
