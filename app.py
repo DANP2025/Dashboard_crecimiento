@@ -272,7 +272,7 @@ if not df_latest.empty:
             v_phv = data_jug['% PHV'].values[0] if not pd.isna(data_jug['% PHV'].values[0]) else 0
             v_grt = grt if not pd.isna(grt) else 0
         else:
-            v_edad, v_edad_bio, v_etapa, v_alt, v_peso, v_ritmo = "--", "(Blank)", "(Blank)", "(Blank)", "(Blank)", "(Blank)"
+            v_edad, v_edad_phv, v_etapa, v_alt, v_peso, v_ritmo = "--", "--", "(Blank)", "(Blank)", "(Blank)", "(Blank)"
             v_phv, v_grt, grt = 0, 0, np.nan 
 
         color_phv_gauge = "#2ECC71" if v_phv < 85 else ("#F1C40F" if v_phv < 95 else "#E74C3C")
