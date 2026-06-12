@@ -181,7 +181,8 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     pdf.cell(15, 6, "M.O", border=1, align="C", fill=True)
     pdf.cell(5, 6, "", border=0)
     pdf.cell(45, 6, "Nombre", border=1, fill=True)
-    pdf.cell(15, 6, "% PAH", border=1, align="C", fill=True)
+    # FIX: Renombrado a % PHA
+    pdf.cell(15, 6, "% PHA", border=1, align="C", fill=True)
     pdf.cell(5, 6, "", border=0)
     pdf.cell(45, 6, "Nombre", border=1, fill=True)
     pdf.cell(15, 6, "Cm/Año", border=1, align="C", fill=True)
@@ -189,13 +190,11 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
 
     pdf.set_font(font_name, "", 12)
     
-    # FIX: Extracción de datos sin dependencia del nombre de columna de edad
-    df_t1 = df_filtrado[['Nombre y Apellido', 'M.O']].copy()
+    df_t1 = df_filtrado.copy()
     df_t1['Abs_MO'] = df_t1['M.O'].abs()
-    top_phv = df_t1.sort_values('Abs_MO').head(10)
-    
-    top_siguen = df_filtrado[df_filtrado['M.O'] < 0].sort_values('% PHV').head(10)[['Nombre y Apellido', '% PHV']]
-    top_crec = df_filtrado.sort_values('Gr.T', ascending=False).head(10)[['Nombre y Apellido', 'Gr.T']]
+    top_phv = df_t1.sort_values('Abs_MO').head(10)[['Nombre y Apellido', 'M.O']]
+    top_siguen = df_filtrado[df_filtrado['M.O'] < 0].sort_values('Nombre y Apellido').head(10)[['Nombre y Apellido', '% PHV']]
+    top_crec = df_filtrado.sort_values('Nombre y Apellido', ascending=False).head(10)[['Nombre y Apellido', 'Gr.T']]
     
     for i in range(10):
         n1 = str(top_phv.iloc[i,0])[:22] if i < len(top_phv) else ""
@@ -276,15 +275,16 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     add_page_header("Monitor de Maduración")
     
     pdf.set_y(50)
-    # FIX: Ordenamos df_bar alfabéticamente (A-Z) para sincronizar visualmente con la tabla
     df_bar = df_filtrado.dropna(subset=['% PHV']).sort_values('Nombre y Apellido')
     if not df_bar.empty:
+        y_max = max(105, df_bar['% PHV'].max() * 1.05)
         colors_b = ['#2ECC71' if val < 85 else ('#F1C40F' if val < 95 else '#E74C3C') for val in df_bar['% PHV']]
         fig_b = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', title="Distribución del Estatus Madurativo (%PAH)")
+        # FIX: Formato decimal estricto a 1 o 2
         fig_b.update_traces(marker_color=colors_b, texttemplate='%{y:.1f}%', textposition='outside')
         fig_b.add_hline(y=85, line_dash="dash", line_color="#2ECC71", line_width=2)
         fig_b.add_hline(y=95, line_dash="dash", line_color="#E74C3C", line_width=2)
-        fig_b.update_layout(width=960, height=400, title_x=0.5, plot_bgcolor='white', yaxis_range=[60, 105], margin=dict(l=60, r=50, t=50, b=80), font=dict(size=16, family='Agency FB'))
+        fig_b.update_layout(width=960, height=400, title_x=0.5, plot_bgcolor='white', yaxis_range=[60, y_max], margin=dict(l=60, r=50, t=50, b=80), font=dict(size=16, family='Agency FB'))
         
         try:
             img_b_bytes = safe_render_fig(fig_b)
