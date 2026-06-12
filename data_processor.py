@@ -17,9 +17,9 @@ def get_image_bytes(url):
     except:
         return None
 
-# FIX: v10 para invalidar caché y aplicar Parseador Heurístico de Fechas
+# FIX: v13 para aplicar limpieza de comas en Padres y restaurar dayfirst=True
 @st.cache_data(ttl=60)
-def load_data_v10():
+def load_data_v13():
     SHEET_ID = "1FVuYJtctdiwUzsptZOGOZcr7vXe1CMqR4f360kulYME"
     GID_DATOS = "1766718688"
     
@@ -56,35 +56,14 @@ def load_data_v10():
                 df[col] = pd.to_numeric(df[col], errors='coerce')
 
         # =========================================================
-        # FIX FECHAS: PARSEADOR HEURÍSTICO MULTI-PASO (A PRUEBA DE BALAS)
+        # FIX FECHAS: Restauramos dayfirst=True para formato de Argentina
         # =========================================================
-        def parse_dates_robust(series):
-            # Normalizamos separadores: cambiamos guiones por barras
-            s = series.astype(str).str.strip().str.replace('-', '/')
-            
-            # 1. Intentar Formato Latino (Día/Mes/Año) - Prioridad 1 para Argentina
-            d1 = pd.to_datetime(s, format='%d/%m/%Y', errors='coerce')
-            # 2. Intentar Formato US (Mes/Día/Año) - Por si Sheets exportó por defecto
-            d2 = pd.to_datetime(s, format='%m/%d/%Y', errors='coerce')
-            # 3. Intentar Latino con año de 2 dígitos (ej. 13/10/13)
-            d3 = pd.to_datetime(s, format='%d/%m/%y', errors='coerce')
-            # 4. Intentar US con año de 2 dígitos
-            d4 = pd.to_datetime(s, format='%m/%d/%y', errors='coerce')
-            # 5. Red de seguridad final de Pandas (Inferencia Mixta)
-            d5 = pd.to_datetime(s, format='mixed', dayfirst=True, errors='coerce')
-            
-            # Rellenar en cascada (Priorizando el formato Latino > US > 2Dígitos > Mixed)
-            return d1.fillna(d2).fillna(d3).fillna(d4).fillna(d5)
-
-        df['Fecha de Nacimiento'] = parse_dates_robust(df['Fecha de Nacimiento'])
-        df['Fecha de Evaluacion'] = parse_dates_robust(df['Fecha de Evaluacion'])
+        df['Fecha de Nacimiento'] = pd.to_datetime(df['Fecha de Nacimiento'], format='mixed', dayfirst=True, errors='coerce')
+        df['Fecha de Evaluacion'] = pd.to_datetime(df['Fecha de Evaluacion'], format='mixed', dayfirst=True, errors='coerce')
         
         meses_es = {1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio', 
                     7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'}
-        
-        df['Mes_Año_Eval'] = df['Fecha de Evaluacion'].apply(
-            lambda x: f"{meses_es[x.month]} {x.year}" if pd.notna(x) else np.nan
-        )
+        df['Mes_Año_Eval'] = df['Fecha de Evaluacion'].apply(lambda x: f"{meses_es[x.month]} {x.year}" if pd.notna(x) else np.nan)
 
         df['Edad_Decimal'] = (df['Fecha de Evaluacion'] - df['Fecha de Nacimiento']).dt.days / 365.25
         df = df.sort_values(by=['DNI', 'Fecha de Evaluacion'])
