@@ -17,7 +17,7 @@ def get_image_bytes(url):
     except:
         return None
 
-# FIX: v13 para aplicar limpieza de comas en Padres y restaurar dayfirst=True
+# VERSIÓN 13: Carga dinámica y parseo de fechas Latino
 @st.cache_data(ttl=60)
 def load_data_v13():
     SHEET_ID = "1FVuYJtctdiwUzsptZOGOZcr7vXe1CMqR4f360kulYME"
@@ -49,15 +49,14 @@ def load_data_v13():
         except Exception as e:
             df_int = pd.DataFrame({'Edad_Anios': np.arange(10, 18, 0.5), 'B0': [-12]*16, 'B1': [0.8]*16, 'B2': [0.3]*16, 'B3': [0.4]*16})
 
+        # FIX CRÍTICO: Limpieza de comas en Alturas de Padres para Khamis-Roche
         cols_limpiar = ['Altura de Pie ', 'Altura sentado', 'Peso', 'Altura del padre', 'Altura de la madre']
         for col in cols_limpiar:
             if col in df.columns:
                 df[col] = df[col].astype(str).str.replace(',', '.').str.replace(r'[^0-9.-]', '', regex=True)
                 df[col] = pd.to_numeric(df[col], errors='coerce')
 
-        # =========================================================
-        # FIX FECHAS: Restauramos dayfirst=True para formato de Argentina
-        # =========================================================
+        # FIX FECHAS: Formato Latino estricto para evitar salto de meses
         df['Fecha de Nacimiento'] = pd.to_datetime(df['Fecha de Nacimiento'], format='mixed', dayfirst=True, errors='coerce')
         df['Fecha de Evaluacion'] = pd.to_datetime(df['Fecha de Evaluacion'], format='mixed', dayfirst=True, errors='coerce')
         
@@ -104,9 +103,11 @@ def load_data_v13():
         valid_mirwald = mirwald.between(-3.5, 2.5)
         df['M.O'] = np.where(valid_mirwald, mirwald, np.where(has_parents, moore_padres, moore2))
         
+        # Edad Biológica es Cronológica + Maturity Offset
         df['Edad Biológica'] = df['Edad_Decimal'] + df['M.O']
         df['Edad PHV'] = df['Edad_Decimal'] - df['M.O']
 
+        # Clon matemático del MROUND para Khamis-Roche
         df['EdadParaTabla'] = np.floor(df['Edad_Decimal'] * 2 + 0.5) / 2
         df = pd.merge(df, df_int, left_on='EdadParaTabla', right_on='Edad_Anios', how='left')
         
