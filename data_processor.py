@@ -17,9 +17,9 @@ def get_image_bytes(url):
     except:
         return None
 
-# FIX: v9 para aplicar el traductor de meses y borrar la caché
+# FIX: v10 para invalidar caché y aplicar Parseador Heurístico de Fechas
 @st.cache_data(ttl=60)
-def load_data_v9():
+def load_data_v10():
     SHEET_ID = "1FVuYJtctdiwUzsptZOGOZcr7vXe1CMqR4f360kulYME"
     GID_DATOS = "1766718688"
     
@@ -55,16 +55,30 @@ def load_data_v9():
                 df[col] = df[col].astype(str).str.replace(',', '.').str.replace(r'[^0-9.-]', '', regex=True)
                 df[col] = pd.to_numeric(df[col], errors='coerce')
 
-        df['Fecha de Nacimiento'] = pd.to_datetime(df['Fecha de Nacimiento'], format='%m/%d/%Y', errors='coerce').fillna(
-            pd.to_datetime(df['Fecha de Nacimiento'], format='mixed', errors='coerce')
-        )
-        df['Fecha de Evaluacion'] = pd.to_datetime(df['Fecha de Evaluacion'], format='%d/%m/%Y', errors='coerce').fillna(
-            pd.to_datetime(df['Fecha de Evaluacion'], format='mixed', errors='coerce')
-        )
+        # =========================================================
+        # FIX FECHAS: PARSEADOR HEURÍSTICO MULTI-PASO (A PRUEBA DE BALAS)
+        # =========================================================
+        def parse_dates_robust(series):
+            # Normalizamos separadores: cambiamos guiones por barras
+            s = series.astype(str).str.strip().str.replace('-', '/')
+            
+            # 1. Intentar Formato Latino (Día/Mes/Año) - Prioridad 1 para Argentina
+            d1 = pd.to_datetime(s, format='%d/%m/%Y', errors='coerce')
+            # 2. Intentar Formato US (Mes/Día/Año) - Por si Sheets exportó por defecto
+            d2 = pd.to_datetime(s, format='%m/%d/%Y', errors='coerce')
+            # 3. Intentar Latino con año de 2 dígitos (ej. 13/10/13)
+            d3 = pd.to_datetime(s, format='%d/%m/%y', errors='coerce')
+            # 4. Intentar US con año de 2 dígitos
+            d4 = pd.to_datetime(s, format='%m/%d/%y', errors='coerce')
+            # 5. Red de seguridad final de Pandas (Inferencia Mixta)
+            d5 = pd.to_datetime(s, format='mixed', dayfirst=True, errors='coerce')
+            
+            # Rellenar en cascada (Priorizando el formato Latino > US > 2Dígitos > Mixed)
+            return d1.fillna(d2).fillna(d3).fillna(d4).fillna(d5)
+
+        df['Fecha de Nacimiento'] = parse_dates_robust(df['Fecha de Nacimiento'])
+        df['Fecha de Evaluacion'] = parse_dates_robust(df['Fecha de Evaluacion'])
         
-        # =========================================================
-        # FIX IDIOMA MESES: Traductor manual para evitar problemas de Locale en Linux
-        # =========================================================
         meses_es = {1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio', 
                     7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'}
         
