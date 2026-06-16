@@ -93,8 +93,6 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     
     if not data_jug.empty:
         v_edad = f"{data_jug['Edad_Decimal'].values[0]:.2f}"
-        
-        # FIX ROBUSTO DE COLUMN NAMES: Buscamos Edad PHV o Edad Biológica sin arrojar KeyError
         if 'Edad PHV' in data_jug.columns:
             v_edad_phv = f"{data_jug['Edad PHV'].values[0]:.2f}"
         elif 'Edad Biológica' in data_jug.columns:
@@ -122,7 +120,8 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         pdf.set_text_color(0,0,0)
         pdf.cell(55, 8, str(value), align="C")
         pdf.set_xy(x, y+10)
-        pdf.set_font(font_name, "", 12)
+        # FIX: Reducido a tamaño 10 para garantizar el fit
+        pdf.set_font(font_name, "", 10) 
         pdf.set_text_color(100, 100, 100)
         pdf.cell(55, 8, label, align="C")
         pdf.set_text_color(0, 0, 0)
@@ -132,7 +131,8 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     draw_kpi(140, 80, "RITMO MADURATIVO", v_etapa)
     draw_kpi(15, 103, "TALLA (CM)", v_alt)
     draw_kpi(77.5, 103, "MASA CORPORAL", v_peso)
-    draw_kpi(140, 103, "VEL. CRECIMIENTO (CM/AÑO)", v_ritmo)
+    # FIX: Abreviatura táctica y tamaño de fuente ajustado para caber en 55mm
+    draw_kpi(140, 103, "VEL. CREC. (CM/A\xd1O)", v_ritmo)
 
     color_phv = "#2ECC71" if v_phv < 85 else ("#F1C40F" if v_phv < 95 else "#E74C3C")
     fig_g = go.Figure()
@@ -166,7 +166,6 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     pdf.set_y(50)
     pdf.set_font(font_name, "", 14)
     pdf.set_text_color(26, 91, 54)
-    # FIX: Titulos Tabla
     pdf.cell(60, 6, "Ventana Crítica: Circa-PHV", border=0, align="C")
     pdf.cell(5, 6, "", border=0)
     pdf.cell(60, 6, "Estatus Madurativo: Pre-PHV", border=0, align="C")
@@ -181,20 +180,18 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     pdf.cell(15, 6, "M.O", border=1, align="C", fill=True)
     pdf.cell(5, 6, "", border=0)
     pdf.cell(45, 6, "Nombre", border=1, fill=True)
-    # FIX: Renombrado a % PHA
-    pdf.cell(15, 6, "% PHA", border=1, align="C", fill=True)
+    pdf.cell(15, 6, "% PAH", border=1, align="C", fill=True)
     pdf.cell(5, 6, "", border=0)
     pdf.cell(45, 6, "Nombre", border=1, fill=True)
     pdf.cell(15, 6, "Cm/Año", border=1, align="C", fill=True)
     pdf.ln()
 
     pdf.set_font(font_name, "", 12)
-    
     df_t1 = df_filtrado.copy()
     df_t1['Abs_MO'] = df_t1['M.O'].abs()
     top_phv = df_t1.sort_values('Abs_MO').head(10)[['Nombre y Apellido', 'M.O']]
     top_siguen = df_filtrado[df_filtrado['M.O'] < 0].sort_values('Nombre y Apellido').head(10)[['Nombre y Apellido', '% PHV']]
-    top_crec = df_filtrado.sort_values('Nombre y Apellido', ascending=False).head(10)[['Nombre y Apellido', 'Gr.T']]
+    top_crec = df_filtrado.sort_values('Gr.T', ascending=False).head(10)[['Nombre y Apellido', 'Gr.T']]
     
     for i in range(10):
         n1 = str(top_phv.iloc[i,0])[:22] if i < len(top_phv) else ""
@@ -235,8 +232,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
                 pdf.set_fill_color(231, 76, 60) # Rojo
                 pdf.set_text_color(255, 255, 255)
             pdf.cell(15, 6, v2, border=1, align="C", fill=True)
-            pdf.set_fill_color(240, 240, 240)
-            pdf.set_text_color(0, 0, 0)
+            pdf.set_fill_color(240, 240, 240); pdf.set_text_color(0, 0, 0)
         else:
             pdf.cell(15, 6, v2, border=1, align="C")
             
@@ -280,7 +276,6 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         y_max = max(105, df_bar['% PHV'].max() * 1.05)
         colors_b = ['#2ECC71' if val < 85 else ('#F1C40F' if val < 95 else '#E74C3C') for val in df_bar['% PHV']]
         fig_b = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', title="Distribución del Estatus Madurativo (%PAH)")
-        # FIX: Formato decimal estricto a 1 o 2
         fig_b.update_traces(marker_color=colors_b, texttemplate='%{y:.1f}%', textposition='outside')
         fig_b.add_hline(y=85, line_dash="dash", line_color="#2ECC71", line_width=2)
         fig_b.add_hline(y=95, line_dash="dash", line_color="#E74C3C", line_width=2)
