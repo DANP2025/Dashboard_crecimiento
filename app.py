@@ -111,45 +111,34 @@ df_historico, df_latest = load_data_v13()
 if not df_latest.empty:
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # =========================================================
-    # LÓGICA DE FILTROS EN CASCADA
-    # =========================================================
     col_f1, col_f2, col_f3, col_f4 = st.columns([1, 1, 1, 1])
     
-    # Paso 1: Filtro de Fecha (Independiente)
     with col_f1: 
         fechas_ordenadas = df_historico.sort_values('Fecha de Evaluacion')
         fechas_cronologicas = fechas_ordenadas['Mes_Año_Eval'].dropna().unique()
         fecha_sel = st.selectbox("FECHA DE EVALUACIÓN", ["Todos"] + list(fechas_cronologicas))
     
-    # Reducción 1: Según Fecha
     if fecha_sel != "Todos":
         df_cascada = df_historico[df_historico['Mes_Año_Eval'] == fecha_sel].copy()
         df_cascada = df_cascada.sort_values('Fecha de Evaluacion').groupby('DNI').tail(1).reset_index(drop=True)
     else:
         df_cascada = df_latest.copy()
 
-    # Paso 2: Filtro de Posición (Depende de Fecha)
     with col_f2: 
         pos_sel = st.selectbox("POSICIÓN", ["Todos"] + sorted(df_cascada['Posicion'].dropna().unique()))
     
-    # Reducción 2: Según Posición
     if pos_sel != "Todos": 
         df_cascada = df_cascada[df_cascada['Posicion'] == pos_sel]
 
-    # Paso 3: Filtro de Categoría (Depende de Fecha y Posición)
     with col_f3: 
         cat_sel = st.selectbox("CATEGORÍA", ["Todos"] + sorted(df_cascada['Categoria'].dropna().unique()))
     
-    # Reducción 3: Según Categoría
     if cat_sel != "Todos": 
         df_cascada = df_cascada[df_cascada['Categoria'] == cat_sel]
 
-    # Paso 4: Filtro de Jugador (Depende de TODOS los anteriores)
     with col_f4: 
         jug_sel = st.selectbox("JUGADOR", ["Todos"] + sorted(df_cascada['Nombre y Apellido'].dropna().unique()))
 
-    # El dataframe final filtrado es el resultado de la cascada
     df_filtrado = df_cascada.copy()
     if jug_sel != "Todos": 
         df_filtrado = df_filtrado[df_filtrado['Nombre y Apellido'] == jug_sel]
@@ -216,10 +205,11 @@ if not df_latest.empty:
         ])
         return df_styled
 
+    # FIX: Se incluye explícitamente '%\nPHA' en la regla de .2f para formatear los decimales correctamente
     def generar_formato(df):
         fmt = {}
         for c in df.columns:
-            if c in ['Edad', 'Edad\nBiológica', 'Edad\nPHV', 'Gr.T', 'M.O', '%\nMadurez', '% PHV', 'Maturity Offset\n(Años al PHV)', 'Velocidad de\nCrecimiento\n(Δ cm/año)']:
+            if c in ['Edad', 'Edad\nBiológica', 'Edad\nPHV', 'Gr.T', 'M.O', '%\nMadurez', '%\nPHA', '% PHV', 'Maturity Offset\n(Años al PHV)', 'Velocidad de\nCrecimiento\n(Δ cm/año)']:
                 fmt[c] = lambda x: f"{x:.2f}" if pd.notna(x) else ""
             elif c in ['Altura\nActual (cm)', 'Altura Adulta\nPredicha (cm)', 'Alt.(cm)', 'Alt.Pred']:
                 fmt[c] = lambda x: f"{x:.1f}" if pd.notna(x) else ""
@@ -383,8 +373,18 @@ if not df_latest.empty:
         with col2:
             st.markdown(title_style.format("Estatus Madurativo:<br>Fase Pre - PHV"), unsafe_allow_html=True)
             df_t2 = df_filtrado[df_filtrado['M.O'] < 0][['Nombre y Apellido', 'Edad_Decimal', 'Edad PHV', '% PHV', 'M.O', 'Gr.T']].copy()
+            # FIX: Asegurado que la columna se renombra a %\nPHA
             df_t2_disp = df_t2.sort_values('Nombre y Apellido').rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'Edad PHV': 'Edad\nPHV', '% PHV': '%\nPHA', 'M.O': 'Maturity Offset\n(Años al PHV)', 'Gr.T': 'Velocidad de\nCrecimiento\n(Δ cm/año)'})
-            render_html_table(df_t2_disp.style.map(color_phv_table, subset=['%\nPHA']).format(generar_formato(df_t2_disp)), height="600px")
+            
+            if df_t2_disp.empty:
+                st.markdown("""
+                <div style='display: flex; justify-content: center; align-items: center; height: 150px; border: 2px dashed #BDC3C7; border-radius: 10px; background-color: #F8F9FA; margin-top: 10px;'>
+                    <p style='color: #7F8C8D; font-family: "Agency FB"; font-size: 1.5rem; margin: 0; text-align: center;'>Sin jugadores en Fase Pre-PHV<br>(M.O < 0)</p>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                styled_t2 = df_t2_disp.style.map(color_phv_table, subset=['%\nPHA']).format(generar_formato(df_t2_disp))
+                render_html_table(styled_t2, height="600px")
             
         with col3:
             st.markdown(title_style.format("Alerta Neuromuscular:<br>Máxima Velocidad de Crecimiento<br>(Δ cm/año)"), unsafe_allow_html=True)
