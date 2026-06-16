@@ -110,7 +110,8 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     else:
         v_edad, v_edad_phv, v_etapa, v_alt, v_peso, v_ritmo, v_phv, v_grt = "--", "--", "--", "--", "--", "--", 0, 0
 
-    def draw_kpi(x, y, label, value):
+    # FIX: Se añade el parámetro font_size dinámico (por defecto 10)
+    def draw_kpi(x, y, label, value, font_size=10):
         pdf.set_xy(x, y)
         pdf.set_fill_color(248, 249, 250)
         pdf.set_draw_color(39, 174, 96) 
@@ -120,8 +121,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         pdf.set_text_color(0,0,0)
         pdf.cell(55, 8, str(value), align="C")
         pdf.set_xy(x, y+10)
-        # FIX: Reducido a tamaño 10 para garantizar el fit
-        pdf.set_font(font_name, "", 10) 
+        pdf.set_font(font_name, "", font_size)
         pdf.set_text_color(100, 100, 100)
         pdf.cell(55, 8, label, align="C")
         pdf.set_text_color(0, 0, 0)
@@ -131,8 +131,8 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     draw_kpi(140, 80, "RITMO MADURATIVO", v_etapa)
     draw_kpi(15, 103, "TALLA (CM)", v_alt)
     draw_kpi(77.5, 103, "MASA CORPORAL", v_peso)
-    # FIX: Abreviatura táctica y tamaño de fuente ajustado para caber en 55mm
-    draw_kpi(140, 103, "VEL. CREC. (CM/A\xd1O)", v_ritmo)
+    # FIX: Título completo pero con fuente reducida (8 puntos) para que quepa en la celda
+    draw_kpi(140, 103, "VELOCIDAD DE CRECIMIENTO (CM/AÑO)", v_ritmo, font_size=8)
 
     color_phv = "#2ECC71" if v_phv < 85 else ("#F1C40F" if v_phv < 95 else "#E74C3C")
     fig_g = go.Figure()
@@ -223,13 +223,13 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         if v2 != "":
             val_num = float(v2)
             if val_num < 85:
-                pdf.set_fill_color(46, 204, 113) # Verde
+                pdf.set_fill_color(46, 204, 113) 
                 pdf.set_text_color(0, 0, 0)
             elif val_num < 95:
-                pdf.set_fill_color(241, 196, 15) # Amarillo
+                pdf.set_fill_color(241, 196, 15) 
                 pdf.set_text_color(0, 0, 0)
             else:
-                pdf.set_fill_color(231, 76, 60) # Rojo
+                pdf.set_fill_color(231, 76, 60) 
                 pdf.set_text_color(255, 255, 255)
             pdf.cell(15, 6, v2, border=1, align="C", fill=True)
             pdf.set_fill_color(240, 240, 240); pdf.set_text_color(0, 0, 0)
@@ -273,13 +273,12 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     pdf.set_y(50)
     df_bar = df_filtrado.dropna(subset=['% PHV']).sort_values('Nombre y Apellido')
     if not df_bar.empty:
-        y_max = max(105, df_bar['% PHV'].max() * 1.05)
         colors_b = ['#2ECC71' if val < 85 else ('#F1C40F' if val < 95 else '#E74C3C') for val in df_bar['% PHV']]
         fig_b = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', title="Distribución del Estatus Madurativo (%PAH)")
         fig_b.update_traces(marker_color=colors_b, texttemplate='%{y:.1f}%', textposition='outside')
         fig_b.add_hline(y=85, line_dash="dash", line_color="#2ECC71", line_width=2)
         fig_b.add_hline(y=95, line_dash="dash", line_color="#E74C3C", line_width=2)
-        fig_b.update_layout(width=960, height=400, title_x=0.5, plot_bgcolor='white', yaxis_range=[60, y_max], margin=dict(l=60, r=50, t=50, b=80), font=dict(size=16, family='Agency FB'))
+        fig_b.update_layout(width=960, height=400, title_x=0.5, plot_bgcolor='white', yaxis_range=[60, 105], margin=dict(l=60, r=50, t=50, b=80), font=dict(size=16, family='Agency FB'))
         
         try:
             img_b_bytes = safe_render_fig(fig_b)
