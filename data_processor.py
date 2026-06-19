@@ -17,9 +17,9 @@ def get_image_bytes(url):
     except:
         return None
 
-# FIX V17: Sanitización estricta de la columna Categoria para evitar floats (.0)
+# FIX V18: Lógica Científica de Dimorfismo Sexual para Padres Faltantes
 @st.cache_data(ttl=60)
-def load_data_v17():
+def load_data_v18():
     SHEET_ID = "1FVuYJtctdiwUzsptZOGOZcr7vXe1CMqR4f360kulYME"
     GID_DATOS = "1766718688"
     
@@ -28,13 +28,6 @@ def load_data_v17():
     
     try:
         df = pd.read_csv(url_datos)
-        
-        # =========================================================
-        # FIX CATEGORÍAS: Remover '.0' y convertir a texto limpio
-        # =========================================================
-        if 'Categoria' in df.columns:
-            df['Categoria'] = df['Categoria'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
-            df['Categoria'] = df['Categoria'].replace(['nan', 'None', ''], np.nan)
         
         # Eliminar filas fantasmas (Ghost rows)
         df = df.dropna(subset=['Nombre y Apellido', 'Fecha de Evaluacion'], how='all')
@@ -64,6 +57,10 @@ def load_data_v17():
             if col in df.columns:
                 df[col] = df[col].astype(str).str.replace(',', '.').str.replace(r'[^0-9.-]', '', regex=True)
                 df[col] = pd.to_numeric(df[col], errors='coerce')
+
+        if 'Categoria' in df.columns:
+            df['Categoria'] = df['Categoria'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
+            df['Categoria'] = df['Categoria'].replace(['nan', 'None', ''], np.nan)
 
         df['Fecha de Nacimiento'] = pd.to_datetime(df['Fecha de Nacimiento'], format='mixed', dayfirst=True, errors='coerce')
         df['Fecha de Evaluacion'] = pd.to_datetime(df['Fecha de Evaluacion'], format='mixed', dayfirst=True, errors='coerce')
@@ -107,6 +104,16 @@ def load_data_v17():
         df['AltMadre_cm'] = pd.to_numeric(df.get('Altura de la madre', np.nan), errors='coerce').replace(0, np.nan)
         df['AltPadre_cm'] = np.where((df['AltPadre_cm'] > 0) & (df['AltPadre_cm'] < 3), df['AltPadre_cm'] * 100, df['AltPadre_cm'])
         df['AltMadre_cm'] = np.where((df['AltMadre_cm'] > 0) & (df['AltMadre_cm'] < 3), df['AltMadre_cm'] * 100, df['AltMadre_cm'])
+        
+        # =========================================================
+        # FIX CIENCIA: REGLA DE DIMORFISMO SEXUAL DE TANNER (+/- 13cm)
+        # =========================================================
+        # 1. Si falta el padre pero está la madre: Padre = Madre + 13cm
+        df['AltPadre_cm'] = np.where(df['AltPadre_cm'].isna() & df['AltMadre_cm'].notna(), df['AltMadre_cm'] + 13.0, df['AltPadre_cm'])
+        # 2. Si falta la madre pero está el padre: Madre = Padre - 13cm
+        df['AltMadre_cm'] = np.where(df['AltMadre_cm'].isna() & df['AltPadre_cm'].notna(), df['AltPadre_cm'] - 13.0, df['AltMadre_cm'])
+        
+        # 3. Calculamos Talla Media Parental. Si AMBOS faltan, asume el promedio nacional de 174.0 cm
         df['Predictor_Genetico'] = ((df['AltPadre_cm'] + df['AltMadre_cm']) / 2).fillna(174.0)
         
         has_parents = df['AltPadre_cm'].notna() & df['AltMadre_cm'].notna()
@@ -116,7 +123,8 @@ def load_data_v17():
         valid_mirwald = mirwald.between(-3.5, 2.5)
         df['M.O'] = np.where(valid_mirwald, mirwald, np.where(has_parents, moore_padres, moore2))
         
-        # Edad al PHV = Edad Cronológica - Maturity Offset (Ecuación de Mirwald)
+        # Edad Biológica y Edad al PHV
+        df['Edad Biológica'] = df['Edad_Decimal'] + df['M.O']
         df['Edad PHV'] = df['Edad_Decimal'] - df['M.O']
 
         df['EdadParaTabla'] = np.floor(df['Edad_Decimal'] * 2 + 0.5) / 2
