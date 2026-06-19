@@ -17,9 +17,9 @@ def get_image_bytes(url):
     except:
         return None
 
-# VERSIÓN 15: Sincronizada para evitar ImportError y limpiar Ghost Rows
+# FIX V16: Corrección de Ecuación de Mirwald (Age at PHV = Chronological Age - M.O)
 @st.cache_data(ttl=60)
-def load_data_v15():
+def load_data_v16():
     SHEET_ID = "1FVuYJtctdiwUzsptZOGOZcr7vXe1CMqR4f360kulYME"
     GID_DATOS = "1766718688"
     
@@ -111,8 +111,10 @@ def load_data_v15():
         valid_mirwald = mirwald.between(-3.5, 2.5)
         df['M.O'] = np.where(valid_mirwald, mirwald, np.where(has_parents, moore_padres, moore2))
         
-        df['Edad Biológica'] = df['Edad_Decimal'] + df['M.O']
-        df['Edad PHV'] = df['Edad_Decimal'] + df['M.O'] # Se mantiene unificado para los componentes UI
+        # =========================================================
+        # FIX CIENTÍFICO: Edad al PHV = Edad Cronológica - Maturity Offset
+        # =========================================================
+        df['Edad PHV'] = df['Edad_Decimal'] - df['M.O']
 
         df['EdadParaTabla'] = np.floor(df['Edad_Decimal'] * 2 + 0.5) / 2
         df = pd.merge(df, df_int, left_on='EdadParaTabla', right_on='Edad_Anios', how='left')
@@ -134,7 +136,6 @@ def load_data_v15():
         return df, df_latest
 
     except Exception as e:
-        # Imprimir el error exacto en pantalla si lo hubiera
         st.error(f"🚨 **ALERTA DE DATOS:** Se encontró un error matemático o de formato en el Google Sheets.")
         st.code(f"Detalle técnico: {str(e)}")
         return pd.DataFrame(), pd.DataFrame()
