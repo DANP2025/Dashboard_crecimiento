@@ -17,9 +17,9 @@ def get_image_bytes(url):
     except:
         return None
 
-# FIX V18: Lógica Científica de Dimorfismo Sexual para Padres Faltantes
+# FIX V19: Implementación de Auto-Fill Longitudinal para variables estáticas
 @st.cache_data(ttl=60)
-def load_data_v18():
+def load_data_v19():
     SHEET_ID = "1FVuYJtctdiwUzsptZOGOZcr7vXe1CMqR4f360kulYME"
     GID_DATOS = "1766718688"
     
@@ -29,13 +29,12 @@ def load_data_v18():
     try:
         df = pd.read_csv(url_datos)
         
-        # Eliminar filas fantasmas (Ghost rows)
+        # Eliminar filas fantasmas
         df = df.dropna(subset=['Nombre y Apellido', 'Fecha de Evaluacion'], how='all')
         
         try:
             df_int = pd.read_csv(url_interceptos)
             cols = df_int.columns.astype(str).str.lower()
-            
             col_edad = df_int.columns[cols.str.contains('edad')][0] if any(cols.str.contains('edad')) else df_int.columns[0]
             col_b0 = df_int.columns[cols.str.contains('0') | cols.str.contains('intercept')][0] if any(cols.str.contains('0') | cols.str.contains('intercept')) else df_int.columns[1]
             col_b1 = df_int.columns[cols.str.contains('1') | cols.str.contains('estatura') | cols.str.contains('talla')][0] if any(cols.str.contains('1') | cols.str.contains('estatura') | cols.str.contains('talla')) else df_int.columns[2]
@@ -75,9 +74,17 @@ def load_data_v18():
         df['Edad_Decimal'] = (df['Fecha de Evaluacion'] - df['Fecha de Nacimiento']).dt.days / 365.25
         df = df.sort_values(by=['DNI', 'Fecha de Evaluacion'])
         
-        if 'URLFOTO' in df.columns:
-            df['URLFOTO'] = df['URLFOTO'].replace(r'^\s*$', np.nan, regex=True)
-            df['URLFOTO'] = df.groupby('DNI')['URLFOTO'].ffill().bfill()
+        # =========================================================
+        # FIX DE NEGOCIO: AUTO-COMPLETADO DE VARIABLES ESTÁTICAS
+        # Transfiere datos de padres, posición y foto a las nuevas evaluaciones
+        # =========================================================
+        cols_estaticas = ['Altura del padre', 'Altura de la madre', 'Posicion', 'URLFOTO']
+        for col in cols_estaticas:
+            if col in df.columns:
+                if df[col].dtype == object:
+                    df[col] = df[col].replace(r'^\s*$', np.nan, regex=True)
+                # El "ffill" (Forward Fill) rellena hacia abajo usando el dato más antiguo del mismo jugador
+                df[col] = df.groupby('DNI')[col].ffill().bfill()
 
         def normalize_photo_url(url):
             if pd.isna(url) or "ahi esta" in str(url): return np.nan
@@ -100,20 +107,12 @@ def load_data_v18():
         
         mirwald = -9.236 + 0.0002708 * df['Leg'] * df['Altura sentado'] - 0.001663 * df['Edad_Decimal'] * df['Leg'] + 0.007216 * df['Edad_Decimal'] * df['Altura sentado'] + 0.02292 * df['Pxt']
         
-        df['AltPadre_cm'] = pd.to_numeric(df.get('Altura del padre', np.nan), errors='coerce').replace(0, np.nan)
-        df['AltMadre_cm'] = pd.to_numeric(df.get('Altura de la madre', np.nan), errors='coerce').replace(0, np.nan)
-        df['AltPadre_cm'] = np.where((df['AltPadre_cm'] > 0) & (df['AltPadre_cm'] < 3), df['AltPadre_cm'] * 100, df['AltPadre_cm'])
-        df['AltMadre_cm'] = np.where((df['AltMadre_cm'] > 0) & (df['AltMadre_cm'] < 3), df['AltMadre_cm'] * 100, df['AltMadre_cm'])
+        df['AltPadre_cm'] = np.where((df['Altura del padre'] > 0) & (df['Altura del padre'] < 3), df['Altura del padre'] * 100, df['Altura del padre'])
+        df['AltMadre_cm'] = np.where((df['Altura de la madre'] > 0) & (df['Altura de la madre'] < 3), df['Altura de la madre'] * 100, df['Altura de la madre'])
         
-        # =========================================================
-        # FIX CIENCIA: REGLA DE DIMORFISMO SEXUAL DE TANNER (+/- 13cm)
-        # =========================================================
-        # 1. Si falta el padre pero está la madre: Padre = Madre + 13cm
+        # Implementación Científica de Tanner para Padres Faltantes
         df['AltPadre_cm'] = np.where(df['AltPadre_cm'].isna() & df['AltMadre_cm'].notna(), df['AltMadre_cm'] + 13.0, df['AltPadre_cm'])
-        # 2. Si falta la madre pero está el padre: Madre = Padre - 13cm
         df['AltMadre_cm'] = np.where(df['AltMadre_cm'].isna() & df['AltPadre_cm'].notna(), df['AltPadre_cm'] - 13.0, df['AltMadre_cm'])
-        
-        # 3. Calculamos Talla Media Parental. Si AMBOS faltan, asume el promedio nacional de 174.0 cm
         df['Predictor_Genetico'] = ((df['AltPadre_cm'] + df['AltMadre_cm']) / 2).fillna(174.0)
         
         has_parents = df['AltPadre_cm'].notna() & df['AltMadre_cm'].notna()
@@ -123,8 +122,8 @@ def load_data_v18():
         valid_mirwald = mirwald.between(-3.5, 2.5)
         df['M.O'] = np.where(valid_mirwald, mirwald, np.where(has_parents, moore_padres, moore2))
         
-        # Edad Biológica y Edad al PHV
         df['Edad Biológica'] = df['Edad_Decimal'] + df['M.O']
+        # Respetando la decisión del cliente: Edad PHV = Resta de Mirwald (Age at PHV)
         df['Edad PHV'] = df['Edad_Decimal'] - df['M.O']
 
         df['EdadParaTabla'] = np.floor(df['Edad_Decimal'] * 2 + 0.5) / 2
@@ -147,6 +146,6 @@ def load_data_v18():
         return df, df_latest
 
     except Exception as e:
-        st.error(f"🚨 **ALERTA DE DATOS:** Se encontró un error matemático o de formato en el Google Sheets.")
-        st.code(f"Detalle técnico: {str(e)}")
+        st.error(f"🚨 **ALERTA DE DATOS:** Se encontró un error en el origen de datos.")
+        st.code(str(e))
         return pd.DataFrame(), pd.DataFrame()
