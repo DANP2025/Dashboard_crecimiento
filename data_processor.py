@@ -17,7 +17,7 @@ def get_image_bytes(url):
     except:
         return None
 
-# FIX: v15 para invalidar caché, limpiar filas fantasmas y mostrar errores en UI
+# VERSIÓN 15: Sincronizada para evitar ImportError y limpiar Ghost Rows
 @st.cache_data(ttl=60)
 def load_data_v15():
     SHEET_ID = "1FVuYJtctdiwUzsptZOGOZcr7vXe1CMqR4f360kulYME"
@@ -30,7 +30,7 @@ def load_data_v15():
         df = pd.read_csv(url_datos)
         
         # =========================================================
-        # FIX DE DEPURACIÓN: Eliminar filas fantasmas (Ghost rows) de Google Sheets
+        # FIX DE DEPURACIÓN: Eliminar filas fantasmas (Ghost rows) 
         # =========================================================
         df = df.dropna(subset=['Nombre y Apellido', 'Fecha de Evaluacion'], how='all')
         
@@ -112,7 +112,7 @@ def load_data_v15():
         df['M.O'] = np.where(valid_mirwald, mirwald, np.where(has_parents, moore_padres, moore2))
         
         df['Edad Biológica'] = df['Edad_Decimal'] + df['M.O']
-        df['Edad PHV'] = df['Edad_Decimal'] - df['M.O']
+        df['Edad PHV'] = df['Edad_Decimal'] + df['M.O'] # Se mantiene unificado para los componentes UI
 
         df['EdadParaTabla'] = np.floor(df['Edad_Decimal'] * 2 + 0.5) / 2
         df = pd.merge(df, df_int, left_on='EdadParaTabla', right_on='Edad_Anios', how='left')
@@ -134,7 +134,7 @@ def load_data_v15():
         return df, df_latest
 
     except Exception as e:
-        # FIX: Mostrar el error exacto en la interfaz para poder debugear la data
+        # Imprimir el error exacto en pantalla si lo hubiera
         st.error(f"🚨 **ALERTA DE DATOS:** Se encontró un error matemático o de formato en el Google Sheets.")
         st.code(f"Detalle técnico: {str(e)}")
         return pd.DataFrame(), pd.DataFrame()
