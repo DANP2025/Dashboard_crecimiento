@@ -17,9 +17,9 @@ def get_image_bytes(url):
     except:
         return None
 
-# FIX V16: Corrección de Ecuación de Mirwald (Age at PHV = Chronological Age - M.O)
+# FIX V17: Sanitización estricta de la columna Categoria para evitar floats (.0)
 @st.cache_data(ttl=60)
-def load_data_v16():
+def load_data_v17():
     SHEET_ID = "1FVuYJtctdiwUzsptZOGOZcr7vXe1CMqR4f360kulYME"
     GID_DATOS = "1766718688"
     
@@ -30,8 +30,13 @@ def load_data_v16():
         df = pd.read_csv(url_datos)
         
         # =========================================================
-        # FIX DE DEPURACIÓN: Eliminar filas fantasmas (Ghost rows) 
+        # FIX CATEGORÍAS: Remover '.0' y convertir a texto limpio
         # =========================================================
+        if 'Categoria' in df.columns:
+            df['Categoria'] = df['Categoria'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
+            df['Categoria'] = df['Categoria'].replace(['nan', 'None', ''], np.nan)
+        
+        # Eliminar filas fantasmas (Ghost rows)
         df = df.dropna(subset=['Nombre y Apellido', 'Fecha de Evaluacion'], how='all')
         
         try:
@@ -111,9 +116,7 @@ def load_data_v16():
         valid_mirwald = mirwald.between(-3.5, 2.5)
         df['M.O'] = np.where(valid_mirwald, mirwald, np.where(has_parents, moore_padres, moore2))
         
-        # =========================================================
-        # FIX CIENTÍFICO: Edad al PHV = Edad Cronológica - Maturity Offset
-        # =========================================================
+        # Edad al PHV = Edad Cronológica - Maturity Offset (Ecuación de Mirwald)
         df['Edad PHV'] = df['Edad_Decimal'] - df['M.O']
 
         df['EdadParaTabla'] = np.floor(df['Edad_Decimal'] * 2 + 0.5) / 2

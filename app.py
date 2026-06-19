@@ -5,7 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from PIL import Image
 import base64
-from data_processor import load_data_v16, get_image_bytes
+from data_processor import load_data_v17, get_image_bytes
 from pdf_generator import create_pdf
 
 # Configuración inicial
@@ -106,7 +106,7 @@ with col_title:
         </div>
     """, unsafe_allow_html=True)
 
-df_historico, df_latest = load_data_v16()
+df_historico, df_latest = load_data_v17()
 
 if not df_latest.empty:
     st.markdown("<br>", unsafe_allow_html=True)
