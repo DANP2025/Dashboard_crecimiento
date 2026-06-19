@@ -17,9 +17,9 @@ def get_image_bytes(url):
     except:
         return None
 
-# VERSIÓN 13: Carga dinámica y parseo de fechas Latino
+# FIX: v15 para invalidar caché, limpiar filas fantasmas y mostrar errores en UI
 @st.cache_data(ttl=60)
-def load_data_v13():
+def load_data_v15():
     SHEET_ID = "1FVuYJtctdiwUzsptZOGOZcr7vXe1CMqR4f360kulYME"
     GID_DATOS = "1766718688"
     
@@ -28,6 +28,11 @@ def load_data_v13():
     
     try:
         df = pd.read_csv(url_datos)
+        
+        # =========================================================
+        # FIX DE DEPURACIÓN: Eliminar filas fantasmas (Ghost rows) de Google Sheets
+        # =========================================================
+        df = df.dropna(subset=['Nombre y Apellido', 'Fecha de Evaluacion'], how='all')
         
         try:
             df_int = pd.read_csv(url_interceptos)
@@ -49,20 +54,21 @@ def load_data_v13():
         except Exception as e:
             df_int = pd.DataFrame({'Edad_Anios': np.arange(10, 18, 0.5), 'B0': [-12]*16, 'B1': [0.8]*16, 'B2': [0.3]*16, 'B3': [0.4]*16})
 
-        # FIX CRÍTICO: Limpieza de comas en Alturas de Padres para Khamis-Roche
         cols_limpiar = ['Altura de Pie ', 'Altura sentado', 'Peso', 'Altura del padre', 'Altura de la madre']
         for col in cols_limpiar:
             if col in df.columns:
                 df[col] = df[col].astype(str).str.replace(',', '.').str.replace(r'[^0-9.-]', '', regex=True)
                 df[col] = pd.to_numeric(df[col], errors='coerce')
 
-        # FIX FECHAS: Formato Latino estricto para evitar salto de meses
         df['Fecha de Nacimiento'] = pd.to_datetime(df['Fecha de Nacimiento'], format='mixed', dayfirst=True, errors='coerce')
         df['Fecha de Evaluacion'] = pd.to_datetime(df['Fecha de Evaluacion'], format='mixed', dayfirst=True, errors='coerce')
         
         meses_es = {1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio', 
                     7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'}
-        df['Mes_Año_Eval'] = df['Fecha de Evaluacion'].apply(lambda x: f"{meses_es[x.month]} {x.year}" if pd.notna(x) else np.nan)
+        
+        df['Mes_Año_Eval'] = df['Fecha de Evaluacion'].apply(
+            lambda x: f"{meses_es[x.month]} {x.year}" if pd.notna(x) else np.nan
+        )
 
         df['Edad_Decimal'] = (df['Fecha de Evaluacion'] - df['Fecha de Nacimiento']).dt.days / 365.25
         df = df.sort_values(by=['DNI', 'Fecha de Evaluacion'])
@@ -92,8 +98,10 @@ def load_data_v13():
         
         mirwald = -9.236 + 0.0002708 * df['Leg'] * df['Altura sentado'] - 0.001663 * df['Edad_Decimal'] * df['Leg'] + 0.007216 * df['Edad_Decimal'] * df['Altura sentado'] + 0.02292 * df['Pxt']
         
-        df['AltPadre_cm'] = np.where(df['Altura del padre'] < 3, df['Altura del padre'] * 100, df['Altura del padre'])
-        df['AltMadre_cm'] = np.where(df['Altura de la madre'] < 3, df['Altura de la madre'] * 100, df['Altura de la madre'])
+        df['AltPadre_cm'] = pd.to_numeric(df.get('Altura del padre', np.nan), errors='coerce').replace(0, np.nan)
+        df['AltMadre_cm'] = pd.to_numeric(df.get('Altura de la madre', np.nan), errors='coerce').replace(0, np.nan)
+        df['AltPadre_cm'] = np.where((df['AltPadre_cm'] > 0) & (df['AltPadre_cm'] < 3), df['AltPadre_cm'] * 100, df['AltPadre_cm'])
+        df['AltMadre_cm'] = np.where((df['AltMadre_cm'] > 0) & (df['AltMadre_cm'] < 3), df['AltMadre_cm'] * 100, df['AltMadre_cm'])
         df['Predictor_Genetico'] = ((df['AltPadre_cm'] + df['AltMadre_cm']) / 2).fillna(174.0)
         
         has_parents = df['AltPadre_cm'].notna() & df['AltMadre_cm'].notna()
@@ -103,11 +111,9 @@ def load_data_v13():
         valid_mirwald = mirwald.between(-3.5, 2.5)
         df['M.O'] = np.where(valid_mirwald, mirwald, np.where(has_parents, moore_padres, moore2))
         
-        # Edad Biológica es Cronológica + Maturity Offset
         df['Edad Biológica'] = df['Edad_Decimal'] + df['M.O']
         df['Edad PHV'] = df['Edad_Decimal'] - df['M.O']
 
-        # Clon matemático del MROUND para Khamis-Roche
         df['EdadParaTabla'] = np.floor(df['Edad_Decimal'] * 2 + 0.5) / 2
         df = pd.merge(df, df_int, left_on='EdadParaTabla', right_on='Edad_Anios', how='left')
         
@@ -128,4 +134,7 @@ def load_data_v13():
         return df, df_latest
 
     except Exception as e:
+        # FIX: Mostrar el error exacto en la interfaz para poder debugear la data
+        st.error(f"🚨 **ALERTA DE DATOS:** Se encontró un error matemático o de formato en el Google Sheets.")
+        st.code(f"Detalle técnico: {str(e)}")
         return pd.DataFrame(), pd.DataFrame()
