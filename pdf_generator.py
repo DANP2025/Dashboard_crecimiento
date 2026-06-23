@@ -130,7 +130,8 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     draw_kpi(140, 80, "RITMO MADURATIVO", v_etapa)
     draw_kpi(15, 103, "TALLA (CM)", v_alt)
     draw_kpi(77.5, 103, "MASA CORPORAL", v_peso)
-    draw_kpi(140, 103, "VEL. CREC. (CM/A\xd1O)", v_ritmo, font_size=8)
+    # FIX: Restaurado a texto completo. font_size=7.5 para que quepa perfectamente en los 55mm de ancho de la celda.
+    draw_kpi(140, 103, "VELOCIDAD DE CRECIMIENTO (CM/A\xd1O)", v_ritmo, font_size=7.5)
 
     color_phv = "#2ECC71" if v_phv < 85 else ("#F1C40F" if v_phv < 95 else "#E74C3C")
     fig_g = go.Figure()
