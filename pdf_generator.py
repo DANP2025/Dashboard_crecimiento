@@ -55,6 +55,15 @@ def safe_render_fig(fig):
 def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     
+    # Global Data Rounding to prevent floating point overflow in Plotly Annotations & Tooltips
+    for col in ['M.O', 'Gr.T', '% PHV', 'Edad_Decimal', 'Edad PHV']:
+        if col in df_filtrado.columns:
+            df_filtrado[col] = df_filtrado[col].round(2)
+        if col in data_jug.columns:
+            data_jug[col] = data_jug[col].round(2)
+        if col in df_historico.columns:
+            df_historico[col] = df_historico[col].round(2)
+            
     if os.path.exists("Agency.ttf"):
         pdf.add_font("Agency", "", "Agency.ttf", uni=True)
         font_name = "Agency"
@@ -179,7 +188,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     pdf.cell(15, 6, "M.O", border=1, align="C", fill=True)
     pdf.cell(5, 6, "", border=0)
     pdf.cell(45, 6, "Nombre", border=1, fill=True)
-    pdf.cell(15, 6, "% PAH", border=1, align="C", fill=True)
+    pdf.cell(15, 6, "% PHA", border=1, align="C", fill=True) # FIX: % PHA
     pdf.cell(5, 6, "", border=0)
     pdf.cell(45, 6, "Nombre", border=1, fill=True)
     pdf.cell(15, 6, "Cm/Año", border=1, align="C", fill=True)
@@ -256,8 +265,8 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     if not df_plot.empty:
         fig_g1 = px.scatter(df_plot, x='M.O', y='Gr.T', title="Matriz Bivariada: Cinética de Crecimiento vs. Tiempo al PHV")
         fig_g1.update_traces(marker=dict(size=16, color='#3498DB', line=dict(width=1, color='white')))
-        fig_g1.add_hline(y=7, line_dash="dash", line_color="#E74C3C", line_width=2)
-        fig_g1.add_vline(x=0, line_dash="dash", line_color="#E74C3C", line_width=2)
+        fig_g1.add_hline(y=7, line_dash="dash", line_color="#E74C3C", line_width=2, layer="below")
+        fig_g1.add_vline(x=0, line_dash="dash", line_color="#E74C3C", line_width=2, layer="below")
         fig_g1.update_layout(width=960, height=480, title_x=0.5, plot_bgcolor='white', margin=dict(l=60, r=50, t=50, b=60), font=dict(size=16, family='Agency FB'), xaxis_range=[-3, 3], yaxis_range=[0, 20])
         fig_g1.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title="Tiempo al PHV (Años)")
         fig_g1.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Velocidad de Crecimiento (cm/año)")
@@ -275,12 +284,21 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     pdf.set_y(50)
     df_bar = df_filtrado.dropna(subset=['% PHV']).sort_values('Nombre y Apellido')
     if not df_bar.empty:
+        # FIX BARRAS PDF: Text rendering con fondo blanco e impresión limpia
         y_max = max(105, df_bar['% PHV'].max() * 1.05)
         colors_b = ['#2ECC71' if val < 85 else ('#F1C40F' if val < 95 else '#E74C3C') for val in df_bar['% PHV']]
+        
         fig_b = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', title="Distribución del Estatus Madurativo (%PAH)")
-        fig_b.update_traces(marker_color=colors_b, texttemplate='%{y:.1f}%', textposition='outside')
-        fig_b.add_hline(y=85, line_dash="dash", line_color="#2ECC71", line_width=2)
-        fig_b.add_hline(y=95, line_dash="dash", line_color="#E74C3C", line_width=2)
+        fig_b.update_traces(marker_color=colors_b)
+        fig_b.add_hline(y=85, line_dash="dash", line_color="#2ECC71", line_width=2, layer="below")
+        fig_b.add_hline(y=95, line_dash="dash", line_color="#E74C3C", line_width=2, layer="below")
+        
+        for idx, row in df_bar.iterrows():
+            fig_b.add_annotation(
+                x=row['Nombre y Apellido'], y=row['% PHV'], text=f"{row['% PHV']:.1f}%",
+                showarrow=False, yshift=15, bgcolor="rgba(255,255,255,0.9)", font=dict(size=18, color='#333', family='Agency FB')
+            )
+            
         fig_b.update_layout(width=960, height=400, title_x=0.5, plot_bgcolor='white', yaxis_range=[60, y_max], margin=dict(l=60, r=50, t=50, b=80), font=dict(size=16, family='Agency FB'))
         
         try:
@@ -291,8 +309,8 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     if not df_plot.empty:
         fig_c = px.scatter(df_plot, x='M.O', y='Gr.T', title=f"Ubicación de {jug_sel} en el Plantel")
         fig_c.update_traces(marker=dict(size=14, color='#95A5A6', line=dict(width=1, color='white')))
-        fig_c.add_hline(y=7, line_dash="dash", line_color="#E74C3C", line_width=2)
-        fig_c.add_vline(x=0, line_dash="dash", line_color="#E74C3C", line_width=2)
+        fig_c.add_hline(y=7, line_dash="dash", line_color="#E74C3C", line_width=2, layer="below")
+        fig_c.add_vline(x=0, line_dash="dash", line_color="#E74C3C", line_width=2, layer="below")
         if not data_jug.empty:
             fig_c.add_scatter(x=data_jug['M.O'], y=data_jug['Gr.T'], mode='markers', marker=dict(size=24, color='#F1C40F', symbol='star', line=dict(width=2, color='black')), name=jug_sel)
         fig_c.update_layout(width=960, height=480, title_x=0.5, plot_bgcolor='white', xaxis_range=[-3, 3], yaxis_range=[0, 20], margin=dict(l=60, r=50, t=50, b=60), font=dict(size=16, family='Agency FB'))

@@ -8,10 +8,8 @@ import base64
 from data_processor import load_data_v19, get_image_bytes
 from pdf_generator import create_pdf
 
-# Configuración inicial
 st.set_page_config(page_title="Bio-Banding Institucional", page_icon="⚽", layout="wide", initial_sidebar_state="collapsed")
 
-# --- CSS PREMIUM Y FUENTES AGENCY FB ---
 st.markdown("""
     <style>
     [data-testid="collapsedControl"] { display: none; }
@@ -112,39 +110,35 @@ if not df_latest.empty:
     st.markdown("<br>", unsafe_allow_html=True)
     
     col_f1, col_f2, col_f3, col_f4 = st.columns([1, 1, 1, 1])
+    fechas_ordenadas = df_historico.sort_values('Fecha de Evaluacion')
+    fechas_cronologicas = fechas_ordenadas['Mes_Año_Eval'].dropna().unique()
     
-    with col_f1: 
-        fechas_ordenadas = df_historico.sort_values('Fecha de Evaluacion')
-        fechas_cronologicas = fechas_ordenadas['Mes_Año_Eval'].dropna().unique()
-        fecha_sel = st.selectbox("FECHA DE EVALUACIÓN", ["Todos"] + list(fechas_cronologicas))
-    
+    with col_f1: fecha_sel = st.selectbox("FECHA DE EVALUACIÓN", ["Todos"] + list(fechas_cronologicas))
     if fecha_sel != "Todos":
-        df_cascada = df_historico[df_historico['Mes_Año_Eval'] == fecha_sel].copy()
-        df_cascada = df_cascada.sort_values('Fecha de Evaluacion').groupby('DNI').tail(1).reset_index(drop=True)
+        df_base = df_historico[df_historico['Mes_Año_Eval'] == fecha_sel].copy()
+        df_base = df_base.sort_values('Fecha de Evaluacion').groupby('DNI').tail(1).reset_index(drop=True)
     else:
-        df_cascada = df_latest.copy()
+        df_base = df_latest.copy()
 
-    with col_f2: 
-        pos_sel = st.selectbox("POSICIÓN", ["Todos"] + sorted(df_cascada['Posicion'].dropna().unique()))
-    
-    if pos_sel != "Todos": 
-        df_cascada = df_cascada[df_cascada['Posicion'] == pos_sel]
+    with col_f2: pos_sel = st.selectbox("POSICIÓN", ["Todos"] + sorted(df_base['Posicion'].dropna().unique()))
+    if pos_sel != "Todos": df_base = df_base[df_base['Posicion'] == pos_sel]
 
-    with col_f3: 
-        cat_sel = st.selectbox("CATEGORÍA", ["Todos"] + sorted(df_cascada['Categoria'].dropna().unique()))
-    
-    if cat_sel != "Todos": 
-        df_cascada = df_cascada[df_cascada['Categoria'] == cat_sel]
+    with col_f3: cat_sel = st.selectbox("CATEGORÍA", ["Todos"] + sorted(df_base['Categoria'].dropna().unique()))
+    if cat_sel != "Todos": df_base = df_base[df_base['Categoria'] == cat_sel]
 
-    with col_f4: 
-        jug_sel = st.selectbox("JUGADOR", ["Todos"] + sorted(df_cascada['Nombre y Apellido'].dropna().unique()))
+    with col_f4: jug_sel = st.selectbox("JUGADOR", ["Todos"] + sorted(df_base['Nombre y Apellido'].dropna().unique()))
 
-    df_filtrado = df_cascada.copy()
-    if jug_sel != "Todos": 
-        df_filtrado = df_filtrado[df_filtrado['Nombre y Apellido'] == jug_sel]
+    df_filtrado = df_base.copy()
+    if jug_sel != "Todos": df_filtrado = df_filtrado[df_filtrado['Nombre y Apellido'] == jug_sel]
+
+    # =========================================================
+    # FIX: REDONDEO GLOBAL PARA EVITAR DECIMALES INFINITOS EN TOOLTIPS
+    # =========================================================
+    for col in ['M.O', 'Gr.T', '% PHV', 'Edad_Decimal', 'Edad PHV']:
+        if col in df_filtrado.columns:
+            df_filtrado[col] = df_filtrado[col].round(2)
 
     data_jug = pd.DataFrame()
-
     if jug_sel != "Todos":
         data_jug = df_filtrado[df_filtrado['Nombre y Apellido'] == jug_sel]
         if not data_jug.empty:
@@ -205,7 +199,6 @@ if not df_latest.empty:
         ])
         return df_styled
 
-    # FIX: Se incluye explícitamente '%\nPHA' en la regla de .2f para formatear los decimales correctamente
     def generar_formato(df):
         fmt = {}
         for c in df.columns:
@@ -240,24 +233,27 @@ if not df_latest.empty:
             st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>Distribución del Estatus Madurativo (%PAH)</h3>", unsafe_allow_html=True)
             df_bar = df_filtrado.dropna(subset=['% PHV']).sort_values('Nombre y Apellido')
             if not df_bar.empty:
+                # FIX: Auto-escala dinámica para dejar espacio a la etiqueta
                 y_max = max(105, df_bar['% PHV'].max() * 1.05)
                 bar_colors = ['#2ECC71' if v < 85 else ('#F1C40F' if v < 95 else '#E74C3C') for v in df_bar['% PHV']]
-                fig_bar = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', text='% PHV')
-                fig_bar.update_traces(marker_color=bar_colors, texttemplate='%{text:.1f}%', textposition='outside', textfont_size=20, hovertemplate='<b>%{x}</b><br>% PAH: %{y:.2f}%<extra></extra>')
-                fig_bar.add_hline(y=85, line_dash="dash", line_color="#2ECC71", line_width=2)
-                fig_bar.add_hline(y=95, line_dash="dash", line_color="#E74C3C", line_width=2)
-                fig_bar.update_layout(yaxis_range=[60, y_max], plot_bgcolor='white', margin=dict(t=20, b=20), xaxis_title="", font=plotly_font_config, hoverlabel=plotly_hover_config)
-                fig_bar.update_yaxes(hoverformat=".2f")
-                st.plotly_chart(fig_bar, use_container_width=True)
                 
-                st.markdown("""
-                <div style='display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px; font-family: "Agency FB", sans-serif; font-size: 1.5rem; color: #333; margin-top: -15px;'>
-                    <strong style='color: #1A5B36; margin-right: 5px;'>Estatus Madurativo (%PAH):</strong>
-                    <div style='display: flex; align-items: center;'><div style='width: 18px; height: 18px; background-color: #2ECC71; margin-right: 6px; border-radius: 3px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2);'></div> Pre-PHV (&lt;85%) <span style='margin-left: 8px; color: #ccc;'>|</span></div>
-                    <div style='display: flex; align-items: center;'><div style='width: 18px; height: 18px; background-color: #F1C40F; margin-right: 6px; border-radius: 3px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2);'></div> Circa-PHV (85-95%) <span style='margin-left: 8px; color: #ccc;'>|</span></div>
-                    <div style='display: flex; align-items: center;'><div style='width: 18px; height: 18px; background-color: #E74C3C; margin-right: 6px; border-radius: 3px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2);'></div> Post-PHV (&gt;95%)</div>
-                </div>
-                """, unsafe_allow_html=True)
+                # FIX: Renderización de texto via Anotaciones con Bounding Box (Fondo blanco)
+                fig_bar = px.bar(df_bar, x='Nombre y Apellido', y='% PHV')
+                fig_bar.update_traces(marker_color=bar_colors, hovertemplate='<b>%{x}</b><br>% PAH: %{y:.2f}%<extra></extra>')
+                
+                # FIX: layer="below" pasa las líneas por detrás de las barras
+                fig_bar.add_hline(y=85, line_dash="dash", line_color="#2ECC71", line_width=2, layer="below")
+                fig_bar.add_hline(y=95, line_dash="dash", line_color="#E74C3C", line_width=2, layer="below")
+                
+                # Agregando anotaciones estéticas
+                for idx, row in df_bar.iterrows():
+                    fig_bar.add_annotation(
+                        x=row['Nombre y Apellido'], y=row['% PHV'], text=f"{row['% PHV']:.1f}%",
+                        showarrow=False, yshift=15, bgcolor="rgba(255,255,255,0.85)", font=dict(size=18, color='#333', family='Agency FB')
+                    )
+                
+                fig_bar.update_layout(yaxis_range=[60, y_max], plot_bgcolor='white', margin=dict(t=30, b=20), xaxis_title="", font=plotly_font_config, hoverlabel=plotly_hover_config)
+                st.plotly_chart(fig_bar, use_container_width=True)
 
         st.markdown("<hr>", unsafe_allow_html=True)
         st.markdown(f"<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>Cinética de Crecimiento vs. Años al PHV {futbolista_html}</h3>", unsafe_allow_html=True)
@@ -266,8 +262,8 @@ if not df_latest.empty:
         if not df_plot.empty:
             fig = px.scatter(df_plot, x='M.O', y='Gr.T', hover_name='Nombre y Apellido', hover_data={'Iniciales': True, 'M.O': ':.2f', 'Gr.T': ':.2f', 'Decision_Entrenamiento': True}, labels={'M.O': 'Tiempo al PHV (Años)', 'Gr.T': 'Velocidad de Crecimiento (cm/año)'})
             fig.update_traces(marker=dict(size=18, color='#3498DB', line=dict(width=2, color='white')))
-            fig.add_hline(y=7, line_dash="dash", line_color="#E74C3C", line_width=2)
-            fig.add_vline(x=0, line_dash="dash", line_color="#E74C3C", line_width=2)
+            fig.add_hline(y=7, line_dash="dash", line_color="#E74C3C", line_width=2, layer="below")
+            fig.add_vline(x=0, line_dash="dash", line_color="#E74C3C", line_width=2, layer="below")
             fig.update_layout(xaxis_range=[-3, 3], yaxis_range=[0, 20], plot_bgcolor='white', height=600, margin=dict(t=30, b=30), font=plotly_font_config, hoverlabel=plotly_hover_config)
             fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_font=dict(size=22, weight='bold'), title_text="Tiempo al PHV (Años)", hoverformat=".2f")
             fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_font=dict(size=22, weight='bold'), title_text="Velocidad de Crecimiento (cm/año)", hoverformat=".2f")
@@ -311,6 +307,7 @@ if not df_latest.empty:
             f1 = "white" if jug_sel == "Todos" else "#1A5B36"
             f2 = "white" if (jug_sel == "Todos" or pd.isna(grt)) else "#1A5B36"
             with g1:
+                # FIX: <br> explícito en los títulos de Indicators para envolver la frase larga
                 fig1 = go.Figure(go.Indicator(mode="gauge+number", value=v_phv, number={'font': {'size': 60, 'color': f1, 'family': 'Agency FB'}, 'valueformat': '.1f'}, domain={'x': [0, 1], 'y': [0, 1]}, title={'text': "Estatus Madurativo<br>(%PAH)", 'font': {'size': 20, 'color': '#7f8c8d', 'weight': 'bold', 'family': 'Agency FB'}}, gauge={'axis': {'range': [80, 100], 'tickwidth': 2, 'tickfont': {'size': 18, 'family': 'Agency FB'}}, 'bar': {'color': color_phv_gauge, 'thickness': 0.35}}))
                 fig1.update_layout(height=320, margin=dict(l=40, r=40, t=90, b=20), font=plotly_font_config)
                 st.plotly_chart(fig1, use_container_width=True)
@@ -373,7 +370,7 @@ if not df_latest.empty:
         with col2:
             st.markdown(title_style.format("Estatus Madurativo:<br>Fase Pre - PHV"), unsafe_allow_html=True)
             df_t2 = df_filtrado[df_filtrado['M.O'] < 0][['Nombre y Apellido', 'Edad_Decimal', 'Edad PHV', '% PHV', 'M.O', 'Gr.T']].copy()
-            # FIX: Asegurado que la columna se renombra a %\nPHA
+            # FIX: % PHA update to trigger correctly in dict formatter
             df_t2_disp = df_t2.sort_values('Nombre y Apellido').rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'Edad PHV': 'Edad\nPHV', '% PHV': '%\nPHA', 'M.O': 'Maturity Offset\n(Años al PHV)', 'Gr.T': 'Velocidad de\nCrecimiento\n(Δ cm/año)'})
             
             if df_t2_disp.empty:
@@ -391,16 +388,3 @@ if not df_latest.empty:
             df_t3 = df_filtrado[['Nombre y Apellido', 'Edad_Decimal', 'M.O', 'Gr.T']].copy()
             df_t3_disp = df_t3.sort_values('Nombre y Apellido').rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'M.O': 'Maturity Offset\n(Años al PHV)', 'Gr.T': 'Velocidad de\nCrecimiento\n(Δ cm/año)'})
             render_html_table(df_t3_disp.style.map(color_gt, subset=['Velocidad de\nCrecimiento\n(Δ cm/año)']).format(generar_formato(df_t3_disp)), height="600px")
-
-        st.markdown("<h3 style='text-align: center; color: #1A5B36; margin-top: 40px; font-weight: 800; font-size: 2.2rem;'>Matriz Bivariada: Cinética de Crecimiento vs. Tiempo al PHV</h3>", unsafe_allow_html=True)
-        df_plot2 = df_filtrado.dropna(subset=['M.O'])
-        if not df_plot2.empty:
-            fig_c = px.scatter(df_plot2, x='M.O', y='Gr.T', hover_name='Nombre y Apellido', hover_data={'Iniciales': True, 'M.O': ':.2f', 'Gr.T': ':.2f', 'Decision_Entrenamiento': True}, labels={'M.O': 'Tiempo al PHV (Años)', 'Gr.T': 'Velocidad de Crecimiento (cm/año)'})
-            fig_c.update_traces(marker=dict(size=16, color='#95A5A6', line=dict(width=1, color='white')))
-            fig_c.add_hline(y=7, line_dash="dash", line_color="#E74C3C", line_width=2)
-            fig_c.add_vline(x=0, line_dash="dash", line_color="#E74C3C", line_width=2)
-            if jug_sel != "Todos" and not data_jug.empty: fig_c.add_scatter(x=data_jug['M.O'], y=data_jug['Gr.T'], mode='markers', marker=dict(size=25, color='#F1C40F', symbol='star', line=dict(width=2, color='black')), name=jug_sel)
-            fig_c.update_layout(xaxis_range=[-3, 3], yaxis_range=[0, 20], plot_bgcolor='white', height=550, font=plotly_font_config, hoverlabel=plotly_hover_config)
-            fig_c.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_text="Tiempo al PHV (Años)", title_font=dict(size=20, weight='bold'), hoverformat=".2f")
-            fig_c.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_text="Velocidad de Crecimiento (Δ cm/año)", title_font=dict(size=20, weight='bold'), hoverformat=".2f")
-            st.plotly_chart(fig_c, use_container_width=True)
