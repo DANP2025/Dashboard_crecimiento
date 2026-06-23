@@ -110,7 +110,6 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     else:
         v_edad, v_edad_phv, v_etapa, v_alt, v_peso, v_ritmo, v_phv, v_grt = "--", "--", "--", "--", "--", "--", 0, 0
 
-    # FIX: Se añade el parámetro font_size dinámico (por defecto 10)
     def draw_kpi(x, y, label, value, font_size=10):
         pdf.set_xy(x, y)
         pdf.set_fill_color(248, 249, 250)
@@ -131,8 +130,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     draw_kpi(140, 80, "RITMO MADURATIVO", v_etapa)
     draw_kpi(15, 103, "TALLA (CM)", v_alt)
     draw_kpi(77.5, 103, "MASA CORPORAL", v_peso)
-    # FIX: Título completo pero con fuente reducida (8 puntos) para que quepa en la celda
-    draw_kpi(140, 103, "VELOCIDAD DE CRECIMIENTO (CM/AÑO)", v_ritmo, font_size=8)
+    draw_kpi(140, 103, "VEL. CREC. (CM/A\xd1O)", v_ritmo, font_size=8)
 
     color_phv = "#2ECC71" if v_phv < 85 else ("#F1C40F" if v_phv < 95 else "#E74C3C")
     fig_g = go.Figure()
@@ -147,7 +145,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
 
     df_hist_plot = df_historico[df_historico['Nombre y Apellido'] == jug_sel]
     if not df_hist_plot.empty:
-        fig_hist = px.scatter(df_hist_plot, x='Edad_Decimal', y='Altura de Pie ', title="Cinética de Crecimiento vs. Años al PHV")
+        fig_hist = px.scatter(df_hist_plot, x='Edad_Decimal', y='Altura de Pie ', title="Cinética de Crecimiento vs. Edad Decimal")
         fig_hist.update_traces(marker=dict(size=20, color='#1E3A8A'))
         fig_hist.update_layout(width=960, height=400, title_x=0.5, plot_bgcolor='white', margin=dict(l=60, r=50, t=50, b=60), font=dict(size=16, family='Agency FB'))
         fig_hist.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title="Edad Cronológica (Años)")
@@ -189,11 +187,14 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     pdf.set_font(font_name, "", 12)
     df_t1 = df_filtrado.copy()
     df_t1['Abs_MO'] = df_t1['M.O'].abs()
-    top_phv = df_t1.sort_values('Abs_MO').head(10)[['Nombre y Apellido', 'M.O']]
-    top_siguen = df_filtrado[df_filtrado['M.O'] < 0].sort_values('Nombre y Apellido').head(10)[['Nombre y Apellido', '% PHV']]
-    top_crec = df_filtrado.sort_values('Gr.T', ascending=False).head(10)[['Nombre y Apellido', 'Gr.T']]
     
-    for i in range(10):
+    # FIX: Extraemos exclusivamente 1 fila (la del jugador actual)
+    top_phv = df_t1.sort_values('Abs_MO').head(1)[['Nombre y Apellido', 'M.O']]
+    top_siguen = df_filtrado[df_filtrado['M.O'] < 0].sort_values('Nombre y Apellido').head(1)[['Nombre y Apellido', '% PHV']]
+    top_crec = df_filtrado.sort_values('Gr.T', ascending=False).head(1)[['Nombre y Apellido', 'Gr.T']]
+    
+    # FIX: Renderizamos solo 1 fila (range(1)) en lugar de las 10
+    for i in range(1):
         n1 = str(top_phv.iloc[i,0])[:22] if i < len(top_phv) else ""
         val1 = top_phv.iloc[i,1] if i < len(top_phv) else np.nan
         v1 = f"{val1:.2f}" if pd.notna(val1) else ""
@@ -273,12 +274,13 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     pdf.set_y(50)
     df_bar = df_filtrado.dropna(subset=['% PHV']).sort_values('Nombre y Apellido')
     if not df_bar.empty:
+        y_max = max(105, df_bar['% PHV'].max() * 1.05)
         colors_b = ['#2ECC71' if val < 85 else ('#F1C40F' if val < 95 else '#E74C3C') for val in df_bar['% PHV']]
         fig_b = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', title="Distribución del Estatus Madurativo (%PAH)")
         fig_b.update_traces(marker_color=colors_b, texttemplate='%{y:.1f}%', textposition='outside')
         fig_b.add_hline(y=85, line_dash="dash", line_color="#2ECC71", line_width=2)
         fig_b.add_hline(y=95, line_dash="dash", line_color="#E74C3C", line_width=2)
-        fig_b.update_layout(width=960, height=400, title_x=0.5, plot_bgcolor='white', yaxis_range=[60, 105], margin=dict(l=60, r=50, t=50, b=80), font=dict(size=16, family='Agency FB'))
+        fig_b.update_layout(width=960, height=400, title_x=0.5, plot_bgcolor='white', yaxis_range=[60, y_max], margin=dict(l=60, r=50, t=50, b=80), font=dict(size=16, family='Agency FB'))
         
         try:
             img_b_bytes = safe_render_fig(fig_b)
