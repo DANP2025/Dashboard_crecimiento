@@ -5,9 +5,10 @@ import plotly.express as px
 import plotly.graph_objects as go
 from PIL import Image
 import base64
-from data_processor import load_data_v19, get_image_bytes
+import data_processor
 from pdf_generator import create_pdf
 
+# Configuración inicial
 st.set_page_config(page_title="Bio-Banding Institucional", page_icon="⚽", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
@@ -104,7 +105,15 @@ with col_title:
         </div>
     """, unsafe_allow_html=True)
 
-df_historico, df_latest = load_data_v19()
+# FIX: Importador Dinámico y seguro a prueba de ImportErrors
+load_funcs = [f for f in dir(data_processor) if f.startswith('load_data')]
+latest_load_func = sorted(load_funcs)[-1] if load_funcs else None
+if latest_load_func:
+    load_data = getattr(data_processor, latest_load_func)
+    df_historico, df_latest = load_data()
+else:
+    st.error("Error crítico: Función de carga de datos no encontrada.")
+    st.stop()
 
 if not df_latest.empty:
     st.markdown("<br>", unsafe_allow_html=True)
@@ -144,7 +153,7 @@ if not df_latest.empty:
         if not data_jug.empty:
             img_bytes = None
             if 'URLFOTO' in data_jug.columns and pd.notna(data_jug['URLFOTO'].values[0]):
-                img_bytes = get_image_bytes(data_jug['URLFOTO'].values[0])
+                img_bytes = getattr(data_processor, 'get_image_bytes', lambda x: None)(data_jug['URLFOTO'].values[0])
             
             if img_bytes:
                 b64_img = get_base64_image(img_bytes)
@@ -254,6 +263,16 @@ if not df_latest.empty:
                 
                 fig_bar.update_layout(yaxis_range=[60, y_max], plot_bgcolor='white', margin=dict(t=30, b=20), xaxis_title="", font=plotly_font_config, hoverlabel=plotly_hover_config)
                 st.plotly_chart(fig_bar, use_container_width=True)
+                
+                # FIX RESTORED: Leyenda HTML estética debajo del gráfico de barras
+                st.markdown("""
+                <div style='display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px; font-family: "Agency FB", sans-serif; font-size: 1.5rem; color: #333; margin-top: -15px;'>
+                    <strong style='color: #1A5B36; margin-right: 5px;'>Estatus Madurativo (%PAH):</strong>
+                    <div style='display: flex; align-items: center;'><div style='width: 18px; height: 18px; background-color: #2ECC71; margin-right: 6px; border-radius: 3px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2);'></div> Pre-PHV (&lt;85%) <span style='margin-left: 8px; color: #ccc;'>|</span></div>
+                    <div style='display: flex; align-items: center;'><div style='width: 18px; height: 18px; background-color: #F1C40F; margin-right: 6px; border-radius: 3px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2);'></div> Circa-PHV (85-95%) <span style='margin-left: 8px; color: #ccc;'>|</span></div>
+                    <div style='display: flex; align-items: center;'><div style='width: 18px; height: 18px; background-color: #E74C3C; margin-right: 6px; border-radius: 3px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2);'></div> Post-PHV (&gt;95%)</div>
+                </div>
+                """, unsafe_allow_html=True)
 
         st.markdown("<hr>", unsafe_allow_html=True)
         st.markdown(f"<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>Cinética de Crecimiento vs. Años al PHV {futbolista_html}</h3>", unsafe_allow_html=True)
@@ -388,3 +407,16 @@ if not df_latest.empty:
             df_t3 = df_filtrado[['Nombre y Apellido', 'Edad_Decimal', 'M.O', 'Gr.T']].copy()
             df_t3_disp = df_t3.sort_values('Nombre y Apellido').rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'M.O': 'Maturity Offset\n(Años al PHV)', 'Gr.T': 'Velocidad de\nCrecimiento\n(Δ cm/año)'})
             render_html_table(df_t3_disp.style.map(color_gt, subset=['Velocidad de\nCrecimiento\n(Δ cm/año)']).format(generar_formato(df_t3_disp)), height="600px")
+
+        st.markdown("<h3 style='text-align: center; color: #1A5B36; margin-top: 40px; font-weight: 800; font-size: 2.2rem;'>Matriz Bivariada: Cinética de Crecimiento vs. Tiempo al PHV</h3>", unsafe_allow_html=True)
+        df_plot2 = df_filtrado.dropna(subset=['M.O'])
+        if not df_plot2.empty:
+            fig_c = px.scatter(df_plot2, x='M.O', y='Gr.T', hover_name='Nombre y Apellido', hover_data={'Iniciales': True, 'M.O': ':.2f', 'Gr.T': ':.2f', 'Decision_Entrenamiento': True}, labels={'M.O': 'Tiempo al PHV (Años)', 'Gr.T': 'Velocidad de Crecimiento (cm/año)'})
+            fig_c.update_traces(marker=dict(size=16, color='#95A5A6', line=dict(width=1, color='white')))
+            fig_c.add_hline(y=7, line_dash="dash", line_color="#E74C3C", line_width=2)
+            fig_c.add_vline(x=0, line_dash="dash", line_color="#E74C3C", line_width=2)
+            if jug_sel != "Todos" and not data_jug.empty: fig_c.add_scatter(x=data_jug['M.O'], y=data_jug['Gr.T'], mode='markers', marker=dict(size=25, color='#F1C40F', symbol='star', line=dict(width=2, color='black')), name=jug_sel)
+            fig_c.update_layout(xaxis_range=[-3, 3], yaxis_range=[0, 20], plot_bgcolor='white', height=550, font=plotly_font_config, hoverlabel=plotly_hover_config)
+            fig_c.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_text="Tiempo al PHV (Años)", title_font=dict(size=20, weight='bold'), hoverformat=".2f")
+            fig_c.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_text="Velocidad de Crecimiento (Δ cm/año)", title_font=dict(size=20, weight='bold'), hoverformat=".2f")
+            st.plotly_chart(fig_c, use_container_width=True)
