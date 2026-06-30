@@ -5,10 +5,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 from PIL import Image
 import base64
-import data_processor
+from data_processor import load_data_v13, get_image_bytes
 from pdf_generator import create_pdf
 
-# Configuración inicial
 st.set_page_config(page_title="Bio-Banding Institucional", page_icon="⚽", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
@@ -105,15 +104,7 @@ with col_title:
         </div>
     """, unsafe_allow_html=True)
 
-# FIX: Importador Dinámico y seguro a prueba de ImportErrors
-load_funcs = [f for f in dir(data_processor) if f.startswith('load_data')]
-latest_load_func = sorted(load_funcs)[-1] if load_funcs else None
-if latest_load_func:
-    load_data = getattr(data_processor, latest_load_func)
-    df_historico, df_latest = load_data()
-else:
-    st.error("Error crítico: Función de carga de datos no encontrada.")
-    st.stop()
+df_historico, df_latest = load_data_v13()
 
 if not df_latest.empty:
     st.markdown("<br>", unsafe_allow_html=True)
@@ -153,7 +144,7 @@ if not df_latest.empty:
         if not data_jug.empty:
             img_bytes = None
             if 'URLFOTO' in data_jug.columns and pd.notna(data_jug['URLFOTO'].values[0]):
-                img_bytes = getattr(data_processor, 'get_image_bytes', lambda x: None)(data_jug['URLFOTO'].values[0])
+                img_bytes = get_image_bytes(data_jug['URLFOTO'].values[0])
             
             if img_bytes:
                 b64_img = get_base64_image(img_bytes)
@@ -242,26 +233,14 @@ if not df_latest.empty:
             st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>Distribución del Estatus Madurativo (%PAH)</h3>", unsafe_allow_html=True)
             df_bar = df_filtrado.dropna(subset=['% PHV']).sort_values('Nombre y Apellido')
             if not df_bar.empty:
-                # FIX: Auto-escala dinámica para dejar espacio a la etiqueta
                 y_max = max(105, df_bar['% PHV'].max() * 1.05)
                 bar_colors = ['#2ECC71' if v < 85 else ('#F1C40F' if v < 95 else '#E74C3C') for v in df_bar['% PHV']]
-                
-                # FIX: Renderización de texto via Anotaciones con Bounding Box (Fondo blanco)
-                fig_bar = px.bar(df_bar, x='Nombre y Apellido', y='% PHV')
-                fig_bar.update_traces(marker_color=bar_colors, hovertemplate='<b>%{x}</b><br>% PAH: %{y:.2f}%<extra></extra>')
-                
-                # FIX: layer="below" pasa las líneas por detrás de las barras
-                fig_bar.add_hline(y=85, line_dash="dash", line_color="#2ECC71", line_width=2, layer="below")
-                fig_bar.add_hline(y=95, line_dash="dash", line_color="#E74C3C", line_width=2, layer="below")
-                
-                # Agregando anotaciones estéticas
-                for idx, row in df_bar.iterrows():
-                    fig_bar.add_annotation(
-                        x=row['Nombre y Apellido'], y=row['% PHV'], text=f"{row['% PHV']:.1f}%",
-                        showarrow=False, yshift=15, bgcolor="rgba(255,255,255,0.85)", font=dict(size=18, color='#333', family='Agency FB')
-                    )
-                
-                fig_bar.update_layout(yaxis_range=[60, y_max], plot_bgcolor='white', margin=dict(t=30, b=20), xaxis_title="", font=plotly_font_config, hoverlabel=plotly_hover_config)
+                fig_bar = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', text='% PHV')
+                fig_bar.update_traces(marker_color=bar_colors, texttemplate='%{text:.1f}%', textposition='outside', textfont_size=20, hovertemplate='<b>%{x}</b><br>% PAH: %{y:.2f}%<extra></extra>')
+                fig_bar.add_hline(y=85, line_dash="dash", line_color="#2ECC71", line_width=2)
+                fig_bar.add_hline(y=95, line_dash="dash", line_color="#E74C3C", line_width=2)
+                fig_bar.update_layout(yaxis_range=[60, y_max], plot_bgcolor='white', margin=dict(t=20, b=20), xaxis_title="", font=plotly_font_config, hoverlabel=plotly_hover_config)
+                fig_bar.update_yaxes(hoverformat=".2f")
                 st.plotly_chart(fig_bar, use_container_width=True)
                 
                 # FIX RESTORED: Leyenda HTML estética debajo del gráfico de barras
@@ -281,8 +260,8 @@ if not df_latest.empty:
         if not df_plot.empty:
             fig = px.scatter(df_plot, x='M.O', y='Gr.T', hover_name='Nombre y Apellido', hover_data={'Iniciales': True, 'M.O': ':.2f', 'Gr.T': ':.2f', 'Decision_Entrenamiento': True}, labels={'M.O': 'Tiempo al PHV (Años)', 'Gr.T': 'Velocidad de Crecimiento (cm/año)'})
             fig.update_traces(marker=dict(size=18, color='#3498DB', line=dict(width=2, color='white')))
-            fig.add_hline(y=7, line_dash="dash", line_color="#E74C3C", line_width=2, layer="below")
-            fig.add_vline(x=0, line_dash="dash", line_color="#E74C3C", line_width=2, layer="below")
+            fig.add_hline(y=7, line_dash="dash", line_color="#E74C3C", line_width=2)
+            fig.add_vline(x=0, line_dash="dash", line_color="#E74C3C", line_width=2)
             fig.update_layout(xaxis_range=[-3, 3], yaxis_range=[0, 20], plot_bgcolor='white', height=600, margin=dict(t=30, b=30), font=plotly_font_config, hoverlabel=plotly_hover_config)
             fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_font=dict(size=22, weight='bold'), title_text="Tiempo al PHV (Años)", hoverformat=".2f")
             fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_font=dict(size=22, weight='bold'), title_text="Velocidad de Crecimiento (cm/año)", hoverformat=".2f")
@@ -332,7 +311,8 @@ if not df_latest.empty:
                 st.plotly_chart(fig1, use_container_width=True)
             with g2:
                 color_aguja = "rgba(0,0,0,0)" if pd.isna(grt) or jug_sel == "Todos" else "#1A5B36"
-                fig2 = go.Figure(go.Indicator(mode="gauge+number", value=v_grt, number={'font': {'size': 60, 'color': f2, 'family': 'Agency FB'}, 'valueformat': '.2f'}, domain={'x': [0, 1], 'y': [0, 1]}, title={'text': "Velocidad de Crecimiento<br>(Δ cm/año)", 'font': {'size': 20, 'color': '#7f8c8d', 'weight': 'bold', 'family': 'Agency FB'}}, gauge={'axis': {'range': [0, 15], 'tickwidth': 2, 'tickfont': {'size': 18, 'family': 'Agency FB'}}, 'bar': {'color': color_aguja, 'thickness': 0.35}, 'steps': [{'range': [0, 5], 'color': "#2ECC71"}, {'range': [5, 10], 'color': "#F1C40F"}, {'range': [10, 15], 'color': "#E74C3C"}]}))
+                # FIX: Rango rojo de la velocidad de crecimiento inicia en 7.2
+                fig2 = go.Figure(go.Indicator(mode="gauge+number", value=v_grt, number={'font': {'size': 60, 'color': f2, 'family': 'Agency FB'}, 'valueformat': '.2f'}, domain={'x': [0, 1], 'y': [0, 1]}, title={'text': "Velocidad de Crecimiento<br>(Δ cm/año)", 'font': {'size': 20, 'color': '#7f8c8d', 'weight': 'bold', 'family': 'Agency FB'}}, gauge={'axis': {'range': [0, 15], 'tickwidth': 2, 'tickfont': {'size': 18, 'family': 'Agency FB'}}, 'bar': {'color': color_aguja, 'thickness': 0.35}, 'steps': [{'range': [0, 5], 'color': "#2ECC71"}, {'range': [5, 7.2], 'color': "#F1C40F"}, {'range': [7.2, 15], 'color': "#E74C3C"}]}))
                 fig2.update_layout(height=320, margin=dict(l=40, r=40, t=90, b=20), font=plotly_font_config)
                 st.plotly_chart(fig2, use_container_width=True)
 
