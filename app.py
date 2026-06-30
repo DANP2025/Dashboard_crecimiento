@@ -5,9 +5,10 @@ import plotly.express as px
 import plotly.graph_objects as go
 from PIL import Image
 import base64
-from data_processor import load_data_v13, get_image_bytes
+import data_processor
 from pdf_generator import create_pdf
 
+# Configuración inicial
 st.set_page_config(page_title="Bio-Banding Institucional", page_icon="⚽", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
@@ -34,14 +35,14 @@ st.markdown("""
     .stTabs [aria-selected="true"] { background-color: #27AE60 !important; color: white !important; border-color: #27AE60 !important; }
     
     .kpi-card {
-        background-color: #ffffff; border-radius: 15px; padding: 20px 20px;
+        background-color: #ffffff; border-radius: 15px; padding: 15px 15px;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); border-left: 8px solid #27AE60;
         transition: transform 0.3s ease, box-shadow 0.3s ease; margin-bottom: 20px; 
         border-right: 1px solid #f0f0f0; border-top: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0;
     }
     .kpi-card:hover { transform: translateY(-8px); box-shadow: 0 12px 30px rgba(39, 174, 96, 0.2); }
-    .kpi-val { font-size: 3.5rem !important; font-weight: 900; color: #1A5B36; margin: 0; line-height: 1; }
-    .kpi-label { font-size: 1.4rem !important; color: #7f8c8d; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-top: 8px; white-space: normal; line-height: 1.1; }
+    .kpi-val { font-size: 3.2rem !important; font-weight: 900; color: #1A5B36; margin: 0; line-height: 1; }
+    .kpi-label { font-size: 1.1rem !important; color: #7f8c8d; margin: 0; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-top: 5px; white-space: normal; line-height: 1.1; }
     
     .sticky-player {
         position: fixed; top: 15px; right: 25px; background-color: rgba(255, 255, 255, 0.95);
@@ -104,7 +105,25 @@ with col_title:
         </div>
     """, unsafe_allow_html=True)
 
-df_historico, df_latest = load_data_v13()
+# =========================================================
+# FIX CRÍTICO: IMPORTADOR DINÁMICO (A PRUEBA DE VERSIONES)
+# =========================================================
+try:
+    load_funcs = [f for f in dir(data_processor) if f.startswith('load_data')]
+    def get_version_number(func_name):
+        try: return int(func_name.split('_v')[-1])
+        except: return 0
+    latest_load_func = sorted(load_funcs, key=get_version_number)[-1] if load_funcs else None
+    
+    if latest_load_func:
+        load_data_func = getattr(data_processor, latest_load_func)
+        df_historico, df_latest = load_data_func()
+    else:
+        st.error("Error crítico: Función de carga de datos no encontrada en data_processor.py")
+        st.stop()
+except Exception as e:
+    st.error(f"Error cargando datos: {e}")
+    st.stop()
 
 if not df_latest.empty:
     st.markdown("<br>", unsafe_allow_html=True)
@@ -144,7 +163,9 @@ if not df_latest.empty:
         if not data_jug.empty:
             img_bytes = None
             if 'URLFOTO' in data_jug.columns and pd.notna(data_jug['URLFOTO'].values[0]):
-                img_bytes = get_image_bytes(data_jug['URLFOTO'].values[0])
+                get_image_func = getattr(data_processor, 'get_image_bytes', None)
+                if get_image_func:
+                    img_bytes = get_image_func(data_jug['URLFOTO'].values[0])
             
             if img_bytes:
                 b64_img = get_base64_image(img_bytes)
@@ -235,11 +256,20 @@ if not df_latest.empty:
             if not df_bar.empty:
                 y_max = max(105, df_bar['% PHV'].max() * 1.05)
                 bar_colors = ['#2ECC71' if v < 85 else ('#F1C40F' if v < 95 else '#E74C3C') for v in df_bar['% PHV']]
-                fig_bar = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', text='% PHV')
-                fig_bar.update_traces(marker_color=bar_colors, texttemplate='%{text:.1f}%', textposition='outside', textfont_size=20, hovertemplate='<b>%{x}</b><br>% PAH: %{y:.2f}%<extra></extra>')
-                fig_bar.add_hline(y=85, line_dash="dash", line_color="#2ECC71", line_width=2)
-                fig_bar.add_hline(y=95, line_dash="dash", line_color="#E74C3C", line_width=2)
-                fig_bar.update_layout(yaxis_range=[60, y_max], plot_bgcolor='white', margin=dict(t=20, b=20), xaxis_title="", font=plotly_font_config, hoverlabel=plotly_hover_config)
+                
+                fig_bar = px.bar(df_bar, x='Nombre y Apellido', y='% PHV')
+                fig_bar.update_traces(marker_color=bar_colors, hovertemplate='<b>%{x}</b><br>% PAH: %{y:.2f}%<extra></extra>')
+                
+                fig_bar.add_hline(y=85, line_dash="dash", line_color="#2ECC71", line_width=2, layer="below")
+                fig_bar.add_hline(y=95, line_dash="dash", line_color="#E74C3C", line_width=2, layer="below")
+                
+                for idx, row in df_bar.iterrows():
+                    fig_bar.add_annotation(
+                        x=row['Nombre y Apellido'], y=row['% PHV'], text=f"{row['% PHV']:.1f}%",
+                        showarrow=False, yshift=15, bgcolor="rgba(255,255,255,0.85)", font=dict(size=18, color='#333', family='Agency FB')
+                    )
+                
+                fig_bar.update_layout(yaxis_range=[60, y_max], plot_bgcolor='white', margin=dict(t=30, b=20), xaxis_title="", font=plotly_font_config, hoverlabel=plotly_hover_config)
                 fig_bar.update_yaxes(hoverformat=".2f")
                 st.plotly_chart(fig_bar, use_container_width=True)
                 
@@ -260,8 +290,8 @@ if not df_latest.empty:
         if not df_plot.empty:
             fig = px.scatter(df_plot, x='M.O', y='Gr.T', hover_name='Nombre y Apellido', hover_data={'Iniciales': True, 'M.O': ':.2f', 'Gr.T': ':.2f', 'Decision_Entrenamiento': True}, labels={'M.O': 'Tiempo al PHV (Años)', 'Gr.T': 'Velocidad de Crecimiento (cm/año)'})
             fig.update_traces(marker=dict(size=18, color='#3498DB', line=dict(width=2, color='white')))
-            fig.add_hline(y=7, line_dash="dash", line_color="#E74C3C", line_width=2)
-            fig.add_vline(x=0, line_dash="dash", line_color="#E74C3C", line_width=2)
+            fig.add_hline(y=7, line_dash="dash", line_color="#E74C3C", line_width=2, layer="below")
+            fig.add_vline(x=0, line_dash="dash", line_color="#E74C3C", line_width=2, layer="below")
             fig.update_layout(xaxis_range=[-3, 3], yaxis_range=[0, 20], plot_bgcolor='white', height=600, margin=dict(t=30, b=30), font=plotly_font_config, hoverlabel=plotly_hover_config)
             fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_font=dict(size=22, weight='bold'), title_text="Tiempo al PHV (Años)", hoverformat=".2f")
             fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_font=dict(size=22, weight='bold'), title_text="Velocidad de Crecimiento (cm/año)", hoverformat=".2f")
