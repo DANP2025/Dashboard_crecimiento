@@ -288,11 +288,13 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     if not df_bar.empty:
         y_max = max(105, df_bar['% PHV'].max() * 1.05)
         colors_b = ['#2ECC71' if val < 85 else ('#F1C40F' if val < 95 else '#E74C3C') for val in df_bar['% PHV']]
-        fig_b = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', title="Distribución del Estatus Madurativo (%PAH)")
+        # FIX: Etiqueta Y renombrada a % PHA
+        fig_b = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', title="Distribución del Estatus Madurativo (%PAH)", labels={'% PHV': '% PHA'})
         fig_b.update_traces(marker_color=colors_b, texttemplate='%{y:.1f}%', textposition='outside')
-        fig_b.add_hline(y=85, line_dash="dash", line_color="#2ECC71", line_width=2)
-        fig_b.add_hline(y=95, line_dash="dash", line_color="#E74C3C", line_width=2)
+        fig_b.add_hline(y=85, line_dash="dash", line_color="#2ECC71", line_width=2, layer="below")
+        fig_b.add_hline(y=95, line_dash="dash", line_color="#E74C3C", line_width=2, layer="below")
         fig_b.update_layout(width=960, height=400, title_x=0.5, plot_bgcolor='white', yaxis_range=[60, y_max], margin=dict(l=60, r=50, t=50, b=80), font=dict(size=16, family='Agency FB'))
+        fig_b.update_yaxes(title_text="% PHA", title_font=dict(size=20, weight='bold'))
         
         try:
             img_b_bytes = safe_render_fig(fig_b)

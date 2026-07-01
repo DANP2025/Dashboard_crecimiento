@@ -257,7 +257,8 @@ if not df_latest.empty:
                 y_max = max(105, df_bar['% PHV'].max() * 1.05)
                 bar_colors = ['#2ECC71' if v < 85 else ('#F1C40F' if v < 95 else '#E74C3C') for v in df_bar['% PHV']]
                 
-                fig_bar = px.bar(df_bar, x='Nombre y Apellido', y='% PHV')
+                # FIX: Etiqueta del Eje Y a % PHA
+                fig_bar = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', labels={'% PHV': '% PHA'})
                 fig_bar.update_traces(marker_color=bar_colors, hovertemplate='<b>%{x}</b><br>% PAH: %{y:.2f}%<extra></extra>')
                 
                 fig_bar.add_hline(y=85, line_dash="dash", line_color="#2ECC71", line_width=2, layer="below")
@@ -269,14 +270,14 @@ if not df_latest.empty:
                         showarrow=False, yshift=15, bgcolor="rgba(255,255,255,0.85)", font=dict(size=18, color='#333', family='Agency FB')
                     )
                 
-                fig_bar.update_layout(yaxis_range=[60, y_max], plot_bgcolor='white', margin=dict(t=30, b=20), xaxis_title="", font=plotly_font_config, hoverlabel=plotly_hover_config)
-                fig_bar.update_yaxes(hoverformat=".2f")
+                fig_bar.update_layout(yaxis_range=[60, y_max], plot_bgcolor='white', margin=dict(t=20, b=20), xaxis_title="", font=plotly_font_config, hoverlabel=plotly_hover_config)
+                # FIX: Asignar el título del eje Y
+                fig_bar.update_yaxes(title_text="% PHA", hoverformat=".2f", title_font=dict(size=20, weight='bold'))
                 st.plotly_chart(fig_bar, use_container_width=True)
                 
-                # FIX RESTORED: Leyenda HTML estética debajo del gráfico de barras
+                # FIX: Leyenda HTML sin la frase introductoria, solo los cuadros de color
                 st.markdown("""
                 <div style='display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px; font-family: "Agency FB", sans-serif; font-size: 1.5rem; color: #333; margin-top: -15px;'>
-                    <strong style='color: #1A5B36; margin-right: 5px;'>Estatus Madurativo (%PAH):</strong>
                     <div style='display: flex; align-items: center;'><div style='width: 18px; height: 18px; background-color: #2ECC71; margin-right: 6px; border-radius: 3px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2);'></div> Pre-PHV (&lt;85%) <span style='margin-left: 8px; color: #ccc;'>|</span></div>
                     <div style='display: flex; align-items: center;'><div style='width: 18px; height: 18px; background-color: #F1C40F; margin-right: 6px; border-radius: 3px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2);'></div> Circa-PHV (85-95%) <span style='margin-left: 8px; color: #ccc;'>|</span></div>
                     <div style='display: flex; align-items: center;'><div style='width: 18px; height: 18px; background-color: #E74C3C; margin-right: 6px; border-radius: 3px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2);'></div> Post-PHV (&gt;95%)</div>
