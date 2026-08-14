@@ -23,42 +23,42 @@ st.markdown("""
     
     html, body, [class*="css"] { font-size: 20px !important; }
     
-    .stSelectbox label { font-size: 1.5rem !important; font-weight: 800 !important; color: #1A5B36 !important; letter-spacing: 1px; }
+    .stSelectbox label { font-size: 1.5rem !important; font-weight: 800 !important; color: #0F172A !important; letter-spacing: 1px; }
     
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; border-bottom: 3px solid #27AE60; padding-top: 15px; }
+    .stTabs [data-baseweb="tab-list"] { gap: 10px; border-bottom: 3px solid #3B82F6; padding-top: 15px; }
     .stTabs [data-baseweb="tab"] {
         height: 60px; background-color: #f8f9fa; border-radius: 12px 12px 0px 0px;
         padding: 10px 35px; color: #555; font-size: 26px !important; font-weight: 700;
         border: 2px solid #e0e0e0; border-bottom: none; transition: all 0.3s ease; letter-spacing: 1px;
     }
-    .stTabs [data-baseweb="tab"]:hover { background-color: #F4D03F; color: #1A5B36; }
-    .stTabs [aria-selected="true"] { background-color: #27AE60 !important; color: white !important; border-color: #27AE60 !important; }
+    .stTabs [data-baseweb="tab"]:hover { background-color: #E2E8F0; color: #0F172A; }
+    .stTabs [aria-selected="true"] { background-color: #3B82F6 !important; color: white !important; border-color: #3B82F6 !important; }
     
     .kpi-card {
         background-color: #ffffff; border-radius: 15px; padding: 15px 15px;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); border-left: 8px solid #27AE60;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); border-left: 8px solid #3B82F6;
         transition: transform 0.3s ease, box-shadow 0.3s ease; margin-bottom: 20px; 
         border-right: 1px solid #f0f0f0; border-top: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0;
     }
-    .kpi-card:hover { transform: translateY(-8px); box-shadow: 0 12px 30px rgba(39, 174, 96, 0.2); }
-    .kpi-val { font-size: 3.2rem !important; font-weight: 900; color: #1A5B36; margin: 0; line-height: 1; }
+    .kpi-card:hover { transform: translateY(-8px); box-shadow: 0 12px 30px rgba(59, 130, 246, 0.2); }
+    .kpi-val { font-size: 3.2rem !important; font-weight: 900; color: #0F172A; margin: 0; line-height: 1; }
     .kpi-label { font-size: 1.1rem !important; color: #7f8c8d; margin: 0; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-top: 5px; white-space: normal; line-height: 1.1; }
     
     .sticky-player {
         position: fixed; top: 15px; right: 25px; background-color: rgba(255, 255, 255, 0.95);
         padding: 6px 20px 6px 6px; border-radius: 60px; box-shadow: 0 6px 20px rgba(0,0,0,0.15);
         z-index: 999999; display: flex; align-items: center; gap: 12px;
-        border: 3px solid #27AE60; backdrop-filter: blur(8px);
+        border: 3px solid #3B82F6; backdrop-filter: blur(8px);
     }
-    .sticky-player img { border-radius: 50%; width: 45px; height: 45px; object-fit: cover; border: 2px solid #F4D03F; }
-    .sticky-player-name { font-size: 22px; font-weight: 900; color: #1A5B36; text-transform: uppercase; white-space: nowrap; letter-spacing: 1px;}
+    .sticky-player img { border-radius: 50%; width: 45px; height: 45px; object-fit: cover; border: 2px solid #E2E8F0; }
+    .sticky-player-name { font-size: 22px; font-weight: 900; color: #0F172A; text-transform: uppercase; white-space: nowrap; letter-spacing: 1px;}
     
     .custom-container { width: 100%; overflow-x: hidden !important; overflow-y: auto; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #e0e0e0; }
     .custom-table { width: 100%; border-collapse: collapse; font-family: 'Agency FB', sans-serif; background-color: white; table-layout: fixed; }
     .custom-table thead th {
-        background-color: #27AE60 !important; color: white !important; padding: 10px 5px !important;
+        background-color: #3B82F6 !important; color: white !important; padding: 10px 5px !important;
         text-align: center !important; white-space: pre-wrap !important; word-wrap: break-word !important;
-        font-size: 16px !important; border: 1px solid #1e8449 !important; line-height: 1.1 !important;
+        font-size: 16px !important; border: 1px solid #2563EB !important; line-height: 1.1 !important;
         vertical-align: middle !important; position: sticky; top: 0; z-index: 2;
     }
     .custom-table tbody td { padding: 8px 5px !important; border: 1px solid #eee !important; text-align: center !important; vertical-align: middle !important; font-size: 16px !important; color: #333; word-wrap: break-word !important; }
@@ -87,22 +87,12 @@ try:
     logo_html = f"<img src='data:image/jpeg;base64,{encoded_string}' style='width: 110px; margin-bottom: 15px;'>"
 except: pass
 
-futbolista_html = ""
-try:
-    with open("logofutbolista.jpeg", "rb") as image_file:
-        encoded_fut = base64.b64encode(image_file.read()).decode()
-    futbolista_html = f"<img src='data:image/jpeg;base64,{encoded_fut}' style='height: 38px; vertical-align: middle; margin-left: 10px; margin-bottom: 5px;'>"
-except: pass
+
 
 col_empty, col_title, col_empty2 = st.columns([1, 8, 1])
 with col_title:
     st.markdown(f"""
-        <div style='margin-bottom: 15px; text-align: center;'>
-            {logo_html}
-            <h1 style='color: #1A5B36; font-weight: 900; margin: 0; font-size: 3.5rem; line-height: 1.1; letter-spacing: 1px;'>BIO-BANDING INSTITUCIONAL:</h1>
-            <h2 style='color: #27AE60; font-weight: 800; margin: 0; font-size: 2.2rem; line-height: 1.2; letter-spacing: 0.5px;'>ENTRENAMIENTO DEL FUTBOLISTA POR MADURACIÓN BIOLÓGICA</h2>
-            <h3 style='color: #555555; font-weight: 700; margin: 0; font-size: 1.6rem; line-height: 1.2; letter-spacing: 0.5px;'>MATRIZ METODOLÓGICA INTEGRADA: MODELO - FUTBOLISTAS ATLETAS {futbolista_html}</h3>
-        </div>
+        <div style='margin-bottom: 15px; text-align: center;'>{logo_html}<h1 style='color: #0F172A; font-weight: 900; margin: 0; font-size: 3.5rem; line-height: 1.2; letter-spacing: 1px;'>DASHBOARD MADURACIÓN BIOLÓGICA</h1></div>
     """, unsafe_allow_html=True)
 
 # =========================================================
@@ -193,7 +183,7 @@ if not df_latest.empty:
                     b64_img_main = get_base64_image(img_bytes)
                     st.markdown(f"""
                     <div style="display: flex; justify-content: center; margin-bottom: 20px;">
-                        <img src="data:image/jpeg;base64,{b64_img_main}" style="width: 170px; height: 170px; object-fit: cover; border-radius: 15px; border: 3px solid #27AE60; box-shadow: 0 6px 15px rgba(0,0,0,0.15);">
+                        <img src="data:image/jpeg;base64,{b64_img_main}" style="width: 170px; height: 170px; object-fit: cover; border-radius: 15px; border: 3px solid #3B82F6; box-shadow: 0 6px 15px rgba(0,0,0,0.15);">
                     </div>
                     """, unsafe_allow_html=True)
                 
@@ -236,7 +226,7 @@ if not df_latest.empty:
         st.markdown("<br>", unsafe_allow_html=True)
         col_tabla, col_grafico = st.columns([1.6, 1])
         with col_tabla:
-            st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>MATRIZ ANTROPOMÉTRICA Y MADURATIVA</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='text-align: center; color: #0F172A; font-weight: 800; font-size: 2.2rem;'>MATRIZ ANTROPOMÉTRICA Y MADURATIVA</h3>", unsafe_allow_html=True)
             df_display = df_filtrado.rename(columns={
                 'Nombre y Apellido': 'Nombre y\nApellido',
                 'Edad_Decimal': 'Edad', 
@@ -251,18 +241,18 @@ if not df_latest.empty:
             render_html_table(styled_df, height="500px")
 
         with col_grafico:
-            st.markdown("<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>Distribución del Estatus Madurativo (%PAH)</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='text-align: center; color: #0F172A; font-weight: 800; font-size: 2.2rem;'>Distribución del Estatus Madurativo (%PAH)</h3>", unsafe_allow_html=True)
             df_bar = df_filtrado.dropna(subset=['% PHV']).sort_values('Nombre y Apellido')
             if not df_bar.empty:
                 y_max = max(105, df_bar['% PHV'].max() * 1.05)
-                bar_colors = ['#2ECC71' if v < 85 else ('#F1C40F' if v < 95 else '#E74C3C') for v in df_bar['% PHV']]
+                bar_colors = ['#10B981' if v < 85 else ('#F59E0B' if v < 95 else '#EF4444') for v in df_bar['% PHV']]
                 
                 # FIX: Etiqueta del Eje Y a % PHA
                 fig_bar = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', labels={'% PHV': '% PHA'})
                 fig_bar.update_traces(marker_color=bar_colors, hovertemplate='<b>%{x}</b><br>% PAH: %{y:.2f}%<extra></extra>')
                 
-                fig_bar.add_hline(y=85, line_dash="dash", line_color="#2ECC71", line_width=2, layer="below")
-                fig_bar.add_hline(y=95, line_dash="dash", line_color="#E74C3C", line_width=2, layer="below")
+                fig_bar.add_hline(y=85, line_dash="dash", line_color="#10B981", line_width=2, layer="below")
+                fig_bar.add_hline(y=95, line_dash="dash", line_color="#EF4444", line_width=2, layer="below")
                 
                 for idx, row in df_bar.iterrows():
                     fig_bar.add_annotation(
@@ -278,21 +268,21 @@ if not df_latest.empty:
                 # FIX: Leyenda HTML sin la frase introductoria, solo los cuadros de color
                 st.markdown("""
                 <div style='display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px; font-family: "Agency FB", sans-serif; font-size: 1.5rem; color: #333; margin-top: -15px;'>
-                    <div style='display: flex; align-items: center;'><div style='width: 18px; height: 18px; background-color: #2ECC71; margin-right: 6px; border-radius: 3px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2);'></div> Pre-PHV (&lt;85%) <span style='margin-left: 8px; color: #ccc;'>|</span></div>
-                    <div style='display: flex; align-items: center;'><div style='width: 18px; height: 18px; background-color: #F1C40F; margin-right: 6px; border-radius: 3px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2);'></div> Circa-PHV (85-95%) <span style='margin-left: 8px; color: #ccc;'>|</span></div>
-                    <div style='display: flex; align-items: center;'><div style='width: 18px; height: 18px; background-color: #E74C3C; margin-right: 6px; border-radius: 3px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2);'></div> Post-PHV (&gt;95%)</div>
+                    <div style='display: flex; align-items: center;'><div style='width: 18px; height: 18px; background-color: #10B981; margin-right: 6px; border-radius: 3px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2);'></div> Pre-PHV (&lt;85%) <span style='margin-left: 8px; color: #ccc;'>|</span></div>
+                    <div style='display: flex; align-items: center;'><div style='width: 18px; height: 18px; background-color: #F59E0B; margin-right: 6px; border-radius: 3px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2);'></div> Circa-PHV (85-95%) <span style='margin-left: 8px; color: #ccc;'>|</span></div>
+                    <div style='display: flex; align-items: center;'><div style='width: 18px; height: 18px; background-color: #EF4444; margin-right: 6px; border-radius: 3px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2);'></div> Post-PHV (&gt;95%)</div>
                 </div>
                 """, unsafe_allow_html=True)
 
         st.markdown("<hr>", unsafe_allow_html=True)
-        st.markdown(f"<h3 style='text-align: center; color: #1A5B36; font-weight: 800; font-size: 2.2rem;'>Cinética de Crecimiento vs. Años al PHV {futbolista_html}</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='text-align: center; color: #0F172A; font-weight: 800; font-size: 2.2rem;'>Cinética de Crecimiento vs. Años al PHV</h3>", unsafe_allow_html=True)
         
         df_plot = df_filtrado.dropna(subset=['M.O']) 
         if not df_plot.empty:
             fig = px.scatter(df_plot, x='M.O', y='Gr.T', hover_name='Nombre y Apellido', hover_data={'Iniciales': True, 'M.O': ':.2f', 'Gr.T': ':.2f', 'Decision_Entrenamiento': True}, labels={'M.O': 'Tiempo al PHV (Años)', 'Gr.T': 'Velocidad de Crecimiento (cm/año)'})
             fig.update_traces(marker=dict(size=18, color='#3498DB', line=dict(width=2, color='white')))
-            fig.add_hline(y=7, line_dash="dash", line_color="#E74C3C", line_width=2, layer="below")
-            fig.add_vline(x=0, line_dash="dash", line_color="#E74C3C", line_width=2, layer="below")
+            fig.add_hline(y=7, line_dash="dash", line_color="#EF4444", line_width=2, layer="below")
+            fig.add_vline(x=0, line_dash="dash", line_color="#EF4444", line_width=2, layer="below")
             fig.update_layout(xaxis_range=[-3, 3], yaxis_range=[0, 20], plot_bgcolor='white', height=600, margin=dict(t=30, b=30), font=plotly_font_config, hoverlabel=plotly_hover_config)
             fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_font=dict(size=22, weight='bold'), title_text="Tiempo al PHV (Años)", hoverformat=".2f")
             fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_font=dict(size=22, weight='bold'), title_text="Velocidad de Crecimiento (cm/año)", hoverformat=".2f")
@@ -317,7 +307,7 @@ if not df_latest.empty:
             v_edad, v_edad_phv, v_etapa, v_alt, v_peso, v_ritmo = "--", "(Blank)", "(Blank)", "(Blank)", "(Blank)", "(Blank)"
             v_phv, v_grt, grt = 0, 0, np.nan 
 
-        color_phv_gauge = "#2ECC71" if v_phv < 85 else ("#F1C40F" if v_phv < 95 else "#E74C3C")
+        color_phv_gauge = "#10B981" if v_phv < 85 else ("#F59E0B" if v_phv < 95 else "#EF4444")
         if jug_sel == "Todos": color_phv_gauge = "#EBEBEB"
 
         col_left, col_right = st.columns([1.5, 1.2])
@@ -333,21 +323,21 @@ if not df_latest.empty:
 
         with col_right:
             g1, g2 = st.columns(2)
-            f1 = "white" if jug_sel == "Todos" else "#1A5B36"
-            f2 = "white" if (jug_sel == "Todos" or pd.isna(grt)) else "#1A5B36"
+            f1 = "white" if jug_sel == "Todos" else "#0F172A"
+            f2 = "white" if (jug_sel == "Todos" or pd.isna(grt)) else "#0F172A"
             with g1:
                 # FIX: <br> explícito en los títulos de Indicators para envolver la frase larga
                 fig1 = go.Figure(go.Indicator(mode="gauge+number", value=v_phv, number={'font': {'size': 60, 'color': f1, 'family': 'Agency FB'}, 'valueformat': '.1f'}, domain={'x': [0, 1], 'y': [0, 1]}, title={'text': "Estatus Madurativo<br>(%PAH)", 'font': {'size': 20, 'color': '#7f8c8d', 'weight': 'bold', 'family': 'Agency FB'}}, gauge={'axis': {'range': [80, 100], 'tickwidth': 2, 'tickfont': {'size': 18, 'family': 'Agency FB'}}, 'bar': {'color': color_phv_gauge, 'thickness': 0.35}}))
                 fig1.update_layout(height=320, margin=dict(l=40, r=40, t=90, b=20), font=plotly_font_config)
                 st.plotly_chart(fig1, use_container_width=True)
             with g2:
-                color_aguja = "rgba(0,0,0,0)" if pd.isna(grt) or jug_sel == "Todos" else "#1A5B36"
+                color_aguja = "rgba(0,0,0,0)" if pd.isna(grt) or jug_sel == "Todos" else "#0F172A"
                 # FIX: Rango rojo de la velocidad de crecimiento inicia en 7.2
-                fig2 = go.Figure(go.Indicator(mode="gauge+number", value=v_grt, number={'font': {'size': 60, 'color': f2, 'family': 'Agency FB'}, 'valueformat': '.2f'}, domain={'x': [0, 1], 'y': [0, 1]}, title={'text': "Velocidad de Crecimiento<br>(Δ cm/año)", 'font': {'size': 20, 'color': '#7f8c8d', 'weight': 'bold', 'family': 'Agency FB'}}, gauge={'axis': {'range': [0, 15], 'tickwidth': 2, 'tickfont': {'size': 18, 'family': 'Agency FB'}}, 'bar': {'color': color_aguja, 'thickness': 0.35}, 'steps': [{'range': [0, 5], 'color': "#2ECC71"}, {'range': [5, 7.2], 'color': "#F1C40F"}, {'range': [7.2, 15], 'color': "#E74C3C"}]}))
+                fig2 = go.Figure(go.Indicator(mode="gauge+number", value=v_grt, number={'font': {'size': 60, 'color': f2, 'family': 'Agency FB'}, 'valueformat': '.2f'}, domain={'x': [0, 1], 'y': [0, 1]}, title={'text': "Velocidad de Crecimiento<br>(Δ cm/año)", 'font': {'size': 20, 'color': '#7f8c8d', 'weight': 'bold', 'family': 'Agency FB'}}, gauge={'axis': {'range': [0, 15], 'tickwidth': 2, 'tickfont': {'size': 18, 'family': 'Agency FB'}}, 'bar': {'color': color_aguja, 'thickness': 0.35}, 'steps': [{'range': [0, 5], 'color': "#10B981"}, {'range': [5, 7.2], 'color': "#F59E0B"}, {'range': [7.2, 15], 'color': "#EF4444"}]}))
                 fig2.update_layout(height=320, margin=dict(l=40, r=40, t=90, b=20), font=plotly_font_config)
                 st.plotly_chart(fig2, use_container_width=True)
 
-        st.markdown("<h3 style='text-align: center; color: #1A5B36; margin-top: 30px; font-weight: 800; font-size: 2.2rem;'>Cinética de Crecimiento vs. Años al PHV</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; color: #0F172A; margin-top: 30px; font-weight: 800; font-size: 2.2rem;'>Cinética de Crecimiento vs. Años al PHV</h3>", unsafe_allow_html=True)
         df_hist_plot = df_historico.dropna(subset=['Edad_Decimal', 'Altura de Pie ']).copy()
         if jug_sel != "Todos": df_hist_plot = df_hist_plot[df_hist_plot['Nombre y Apellido'] == jug_sel]
         df_hist_plot['Etapa'] = np.where(df_hist_plot['M.O'] >= 0, 'Normal', 'Tardía')
@@ -365,30 +355,30 @@ if not df_latest.empty:
         st.markdown("<br>", unsafe_allow_html=True)
         def color_mo(val):
             if pd.isna(val): return ''
-            if val < -2: return 'background-color: #2ECC71; color: black; font-weight:bold;'
-            if val < -1: return 'background-color: #F1C40F; color: black; font-weight:bold;'
-            if val < 1: return 'background-color: #E74C3C; color: white; font-weight:bold;'
+            if val < -2: return 'background-color: #10B981; color: black; font-weight:bold;'
+            if val < -1: return 'background-color: #F59E0B; color: black; font-weight:bold;'
+            if val < 1: return 'background-color: #EF4444; color: white; font-weight:bold;'
             if val < 2: return 'background-color: #E67E22; color: white; font-weight:bold;'
-            return 'background-color: #2ECC71; color: black; font-weight:bold;'
+            return 'background-color: #10B981; color: black; font-weight:bold;'
         def color_gt(val):
             if pd.isna(val): return ''
-            if val < 3: return 'background-color: #2ECC71; color: black; font-weight:bold;'
-            if val < 5: return 'background-color: #F1C40F; color: black; font-weight:bold;'
+            if val < 3: return 'background-color: #10B981; color: black; font-weight:bold;'
+            if val < 5: return 'background-color: #F59E0B; color: black; font-weight:bold;'
             if val < 7: return 'background-color: #E67E22; color: white; font-weight:bold;'
-            if val < 9: return 'background-color: #E74C3C; color: white; font-weight:bold;'
+            if val < 9: return 'background-color: #EF4444; color: white; font-weight:bold;'
             return 'background-color: #8E0000; color: white; font-weight:bold;'
         def color_phv_table(val):
             if pd.isna(val) or val == "": return ''
             try:
                 v = float(val)
-                if v < 85: return 'background-color: #2ECC71; color: black; font-weight:bold;'
-                if v < 95: return 'background-color: #F1C40F; color: black; font-weight:bold;'
-                return 'background-color: #E74C3C; color: white; font-weight:bold;'
+                if v < 85: return 'background-color: #10B981; color: black; font-weight:bold;'
+                if v < 95: return 'background-color: #F59E0B; color: black; font-weight:bold;'
+                return 'background-color: #EF4444; color: white; font-weight:bold;'
             except:
                 return ''
 
         col1, col2, col3 = st.columns(3)
-        title_style = "<div style='height: 90px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 10px;'><h4 style='margin:0; text-align: center; color: #1A5B36; font-weight: 800; font-family: \"Agency FB\"; font-size: 1.6rem; line-height: 1.1;'>{}</h4></div>"
+        title_style = "<div style='height: 90px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 10px;'><h4 style='margin:0; text-align: center; color: #0F172A; font-weight: 800; font-family: \"Agency FB\"; font-size: 1.6rem; line-height: 1.1;'>{}</h4></div>"
         
         with col1:
             st.markdown(title_style.format("Ventana Crítica:<br>Fase Circa - PHV"), unsafe_allow_html=True)
@@ -419,14 +409,14 @@ if not df_latest.empty:
             df_t3_disp = df_t3.sort_values('Nombre y Apellido').rename(columns={'Nombre y Apellido': 'Nombre y\nApellido', 'Edad_Decimal': 'Edad', 'M.O': 'Maturity Offset\n(Años al PHV)', 'Gr.T': 'Velocidad de\nCrecimiento\n(Δ cm/año)'})
             render_html_table(df_t3_disp.style.map(color_gt, subset=['Velocidad de\nCrecimiento\n(Δ cm/año)']).format(generar_formato(df_t3_disp)), height="600px")
 
-        st.markdown("<h3 style='text-align: center; color: #1A5B36; margin-top: 40px; font-weight: 800; font-size: 2.2rem;'>Matriz Bivariada: Cinética de Crecimiento vs. Tiempo al PHV</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; color: #0F172A; margin-top: 40px; font-weight: 800; font-size: 2.2rem;'>Matriz Bivariada: Cinética de Crecimiento vs. Tiempo al PHV</h3>", unsafe_allow_html=True)
         df_plot2 = df_filtrado.dropna(subset=['M.O'])
         if not df_plot2.empty:
             fig_c = px.scatter(df_plot2, x='M.O', y='Gr.T', hover_name='Nombre y Apellido', hover_data={'Iniciales': True, 'M.O': ':.2f', 'Gr.T': ':.2f', 'Decision_Entrenamiento': True}, labels={'M.O': 'Tiempo al PHV (Años)', 'Gr.T': 'Velocidad de Crecimiento (cm/año)'})
             fig_c.update_traces(marker=dict(size=16, color='#95A5A6', line=dict(width=1, color='white')))
-            fig_c.add_hline(y=7, line_dash="dash", line_color="#E74C3C", line_width=2)
-            fig_c.add_vline(x=0, line_dash="dash", line_color="#E74C3C", line_width=2)
-            if jug_sel != "Todos" and not data_jug.empty: fig_c.add_scatter(x=data_jug['M.O'], y=data_jug['Gr.T'], mode='markers', marker=dict(size=25, color='#F1C40F', symbol='star', line=dict(width=2, color='black')), name=jug_sel)
+            fig_c.add_hline(y=7, line_dash="dash", line_color="#EF4444", line_width=2)
+            fig_c.add_vline(x=0, line_dash="dash", line_color="#EF4444", line_width=2)
+            if jug_sel != "Todos" and not data_jug.empty: fig_c.add_scatter(x=data_jug['M.O'], y=data_jug['Gr.T'], mode='markers', marker=dict(size=25, color='#F59E0B', symbol='star', line=dict(width=2, color='black')), name=jug_sel)
             fig_c.update_layout(xaxis_range=[-3, 3], yaxis_range=[0, 20], plot_bgcolor='white', height=550, font=plotly_font_config, hoverlabel=plotly_hover_config)
             fig_c.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_text="Tiempo al PHV (Años)", title_font=dict(size=20, weight='bold'), hoverformat=".2f")
             fig_c.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_text="Velocidad de Crecimiento (Δ cm/año)", title_font=dict(size=20, weight='bold'), hoverformat=".2f")

@@ -20,7 +20,7 @@ def get_image_bytes(url):
 # FIX V19: Implementación de Auto-Fill Longitudinal para variables estáticas
 @st.cache_data(ttl=60)
 def load_data_v19():
-    SHEET_ID = "1FVuYJtctdiwUzsptZOGOZcr7vXe1CMqR4f360kulYME"
+    SHEET_ID = "1i21vHAG2ACXKz8M7_eHU9exMz6sGZ_vOBa4QXB1gjvE"
     GID_DATOS = "1766718688"
     
     url_datos = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID_DATOS}"
