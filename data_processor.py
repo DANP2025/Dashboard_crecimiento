@@ -22,9 +22,10 @@ def get_image_bytes(url):
 def load_data_v19():
     SHEET_ID = "1i21vHAG2ACXKz8M7_eHU9exMz6sGZ_vOBa4QXB1gjvE"
     GID_DATOS = "1766718688"
+    GID_INTERCEPTOS = "1255743917I"
     
     url_datos = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID_DATOS}"
-    url_interceptos = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Interceptos"
+    url_interceptos = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID_INTERCEPTOS}"
     
     try:
         df = pd.read_csv(url_datos)
@@ -33,21 +34,9 @@ def load_data_v19():
         df = df.dropna(subset=['Nombre y Apellido', 'Fecha de Evaluacion'], how='all')
         
         try:
-            import requests
-            from io import BytesIO
+            # Ahora usamos pd.read_csv directamente porque el endpoint 'export' no es bloqueado
+            df_int = pd.read_csv(url_interceptos)
             
-            # Simulamos ser un navegador para evitar el bloqueo de Google en Streamlit Cloud
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            }
-            res_int = requests.get(url_interceptos, headers=headers, timeout=10)
-            
-            # Verificar que sea un CSV válido y no una página web de Google de bloqueo/login
-            if res_int.status_code == 200 and '<html' not in res_int.text.lower() and '<!doctype' not in res_int.text.lower():
-                df_int = pd.read_csv(BytesIO(res_int.content))
-            else:
-                raise ValueError("Respuesta HTML detectada (Bloqueo de Google)")
-                
             cols = df_int.columns.astype(str).str.lower()
             col_edad = df_int.columns[cols.str.contains('edad')][0] if any(cols.str.contains('edad')) else df_int.columns[0]
             col_b0 = df_int.columns[cols.str.contains('0') | cols.str.contains('intercept')][0] if any(cols.str.contains('0') | cols.str.contains('intercept')) else df_int.columns[1]
@@ -63,7 +52,7 @@ def load_data_v19():
                     df_int[c] = df_int[c].astype(str).str.replace(',', '.')
                 df_int[c] = pd.to_numeric(df_int[c], errors='coerce')
         except Exception as e:
-            # Fallback a prueba de fallos: Cubrimos edades de 6 a 22 años
+            # Fallback a prueba de fallos de 6 a 22 años
             edades = np.arange(6.0, 22.5, 0.5)
             df_int = pd.DataFrame({
                 'Edad_Anios': edades,
@@ -72,7 +61,7 @@ def load_data_v19():
                 'B2': [0.3] * len(edades),
                 'B3': [0.4] * len(edades)
             })
-            print(f"Advertencia: Usando tabla Interceptos estática debido a un error de conexión: {e}")
+            print(f"Advertencia: Usando tabla Interceptos estática: {e}")
 
         cols_limpiar = ['Altura de Pie ', 'Altura sentado', 'Peso', 'Altura del padre', 'Altura de la madre']
         for col in cols_limpiar:
