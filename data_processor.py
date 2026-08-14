@@ -18,42 +18,60 @@ def get_image_bytes(url):
         return None
 
 @st.cache_data(ttl=60)
-def load_data_v21():
+def load_data_v22():
     import pandas as pd
     import numpy as np
     import streamlit as st
-    
+    import requests
+    from io import BytesIO
+    import time
+
     SHEET_ID = "1i21vHAG2ACXKz8M7_eHU9exMz6sGZ_vOBa4QXB1gjvE"
     GID_DATOS = "1766718688"
     GID_INTERCEPTOS = "1255743917"
-    
+
     url_datos = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID_DATOS}"
     url_interceptos = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID_INTERCEPTOS}"
-    
+
+    # Disfraz de navegador para evitar el bloqueo 403/429 de Google Sheets en la nube
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/csv"
+    }
+
     try:
-        # 1. Cargar Datos
-        df = pd.read_csv(url_datos)
+        # 1. Descargar Datos
+        res_datos = requests.get(url_datos, headers=headers, timeout=15)
+        if res_datos.status_code != 200 or '<html' in res_datos.text[:100].lower():
+            st.error(f"Error bloqueado por Google en DATOS. HTTP {res_datos.status_code}")
+            st.stop()
+        df = pd.read_csv(BytesIO(res_datos.content))
         df = df.dropna(subset=['Nombre y Apellido', 'Fecha de Evaluacion'], how='all')
-        
-        # 2. Cargar Interceptos de forma estricta
-        df_int = pd.read_csv(url_interceptos)
-        df_int = df_int.iloc[:, 0:5].copy() # Tomar las primeras 5 columnas sí o sí
+
+        # PAUSA para evitar el límite de peticiones (Rate Limit) de Google
+        time.sleep(1.5)
+
+        # 2. Descargar Interceptos
+        res_int = requests.get(url_interceptos, headers=headers, timeout=15)
+        if res_int.status_code != 200 or '<html' in res_int.text[:100].lower():
+            st.error(f"Error bloqueado por Google en INTERCEPTOS. HTTP {res_int.status_code}")
+            st.stop()
+            
+        df_int = pd.read_csv(BytesIO(res_int.content))
+        df_int = df_int.iloc[:, 0:5].copy()
         df_int.columns = ['Edad_Anios', 'B0', 'B1', 'B2', 'B3']
-        
+
         for c in df_int.columns:
             if df_int[c].dtype == object:
                 df_int[c] = df_int[c].astype(str).str.replace(',', '.')
             df_int[c] = pd.to_numeric(df_int[c], errors='coerce')
-            
-        # FIX CRÍTICO: Redondear a 1 decimal para evitar fallos de Merge en Linux
-        df_int['Edad_Anios'] = df_int['Edad_Anios'].round(1)
-        
-        if df_int['B0'].isna().all():
-            st.error("Error: Hoja de interceptos vacía.")
-            st.stop()
-            
+
+        df_int = df_int.dropna(subset=['Edad_Anios'])
+        # Forzar tipo float64 y redondear
+        df_int['Edad_Anios'] = df_int['Edad_Anios'].astype(float).round(1)
+
     except Exception as e:
-        st.error(f"Error en Google Sheets: {e}")
+        st.error(f"Error de conexión en la nube: {e}")
         st.stop()
 
     cols_limpiar = ['Altura de Pie ', 'Altura sentado', 'Peso', 'Altura del padre', 'Altura de la madre']
@@ -72,10 +90,7 @@ def load_data_v21():
     meses_es = {1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio', 
                 7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'}
     
-    df['Mes_Año_Eval'] = df['Fecha de Evaluacion'].apply(
-        lambda x: f"{meses_es[x.month]} {x.year}" if pd.notna(x) else np.nan
-    )
-
+    df['Mes_Año_Eval'] = df['Fecha de Evaluacion'].apply(lambda x: f"{meses_es[x.month]} {x.year}" if pd.notna(x) else np.nan)
     df['Edad_Decimal'] = (df['Fecha de Evaluacion'] - df['Fecha de Nacimiento']).dt.days / 365.25
     df = df.sort_values(by=['DNI', 'Fecha de Evaluacion'])
     
@@ -85,19 +100,6 @@ def load_data_v21():
             if df[col].dtype == object:
                 df[col] = df[col].replace(r'^\s*$', np.nan, regex=True)
             df[col] = df.groupby('DNI')[col].ffill().bfill()
-
-    def normalize_photo_url(url):
-        if pd.isna(url) or "ahi esta" in str(url): return np.nan
-        url_str = str(url).strip()
-        import re
-        match1 = re.search(r'/d/([a-zA-Z0-9_-]+)', url_str)
-        match3 = re.search(r'id=([a-zA-Z0-9_-]+)', url_str)
-        if match1: return f"https://drive.google.com/uc?export=download&id={match1.group(1)}"
-        elif match3: return f"https://drive.google.com/uc?export=download&id={match3.group(1)}"
-        return url_str
-
-    if 'URLFOTO' in df.columns:
-        df['URLFOTO'] = df['URLFOTO'].apply(normalize_photo_url)
 
     df['Delta_Altura_cm'] = df.groupby('DNI')['Altura de Pie '].diff()
     df['Delta_Edad_años'] = df.groupby('DNI')['Edad_Decimal'].diff()
@@ -125,16 +127,23 @@ def load_data_v21():
     df['Edad Biológica'] = df['Edad_Decimal'] + df['M.O']
     df['Edad PHV'] = df['Edad_Decimal'] - df['M.O']
 
-    # FIX CRÍTICO DEL MERGE: Redondeamos también aquí a 1 decimal
-    df['EdadParaTabla'] = (np.floor(df['Edad_Decimal'] * 2 + 0.5) / 2).round(1)
+    # FIX CRÍTICO DEL MERGE PARA LINUX
+    df['EdadParaTabla'] = (np.floor(df['Edad_Decimal'] * 2 + 0.5) / 2).astype(float).round(1)
+    
+    # Comprobar si el merge fallará antes de hacerlo
     df = pd.merge(df, df_int, left_on='EdadParaTabla', right_on='Edad_Anios', how='left')
+    
+    # Si después del merge B0 es NaN, mostramos error exacto
+    if df['B0'].isna().all() and not df.empty:
+        st.error("Error crítico: El cruce de edades falló en la nube. Las variables de intercepto están vacías.")
+        st.stop()
     
     df['Altura_Adulta_Predicha'] = df['B0'] + (df['B1'] * df['Altura de Pie ']) + (df['B2'] * df['Peso']) + (df['B3'] * df['Predictor_Genetico'])
     df['% PHV'] = (df['Altura de Pie '] / df['Altura_Adulta_Predicha']) * 100
 
     def categorizar(row):
         if pd.isna(row['M.O']) or pd.isna(row['Gr.T']): return "Sin datos"
-        if row['M.O'] < 0 and row['Gr.T'] < 7: return "Normal. Enfocar en técnica."
+        if row['M.O'] < 0 and row['Gr.T'] < 7: return "Entrenamiento normal. Enfocar en técnica."
         if row['M.O'] < 0 and row['Gr.T'] >= 7: return "Reducir volumen. Evitar picos."
         if row['M.O'] >= 0 and row['Gr.T'] < 7: return "Progresión de fuerza."
         return "Limitar impacto."
