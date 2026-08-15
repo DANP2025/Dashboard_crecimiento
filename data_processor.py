@@ -18,13 +18,12 @@ def get_image_bytes(url):
         return None
 
 @st.cache_data(ttl=60)
-def load_data_v23():
+def load_data_v24():
     import pandas as pd
     import numpy as np
     import streamlit as st
     import requests
     from io import BytesIO
-    import time
 
     SHEET_ID = "1i21vHAG2ACXKz8M7_eHU9exMz6sGZ_vOBa4QXB1gjvE"
     GID_DATOS = "1766718688"
@@ -33,39 +32,58 @@ def load_data_v23():
     url_datos = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID_DATOS}"
     url_interceptos = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID_INTERCEPTOS}"
 
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+    headers = {"User-Agent": "Mozilla/5.0"}
 
     try:
+        # --- 1. DATOS PRINCIPALES ---
         res_datos = requests.get(url_datos, headers=headers, timeout=15)
-        if res_datos.status_code != 200 or '<html' in res_datos.text[:100].lower():
-            st.error("Error bloqueado por Google en DATOS")
+        if res_datos.status_code != 200:
+            st.error("Error descargando Datos.")
             st.stop()
         df = pd.read_csv(BytesIO(res_datos.content))
         df = df.dropna(subset=['Nombre y Apellido', 'Fecha de Evaluacion'], how='all')
 
-        time.sleep(1.5)
-
+        # --- 2. INTERCEPTOS: BUSCADOR INTELIGENTE ---
         res_int = requests.get(url_interceptos, headers=headers, timeout=15)
-        if res_int.status_code != 200 or '<html' in res_int.text[:100].lower():
-            st.error("Error bloqueado por Google en INTERCEPTOS")
+        if res_int.status_code != 200:
+            st.error("Error descargando Interceptos.")
             st.stop()
             
-        df_int = pd.read_csv(BytesIO(res_int.content))
-        df_int = df_int.iloc[:, 0:5].copy()
+        # Leer sin asumir headers para encontrar la fila real de títulos
+        df_int_raw = pd.read_csv(BytesIO(res_int.content), header=None)
+        header_idx = 0
+        for i in range(min(15, len(df_int_raw))):
+            row_str = ' '.join(df_int_raw.iloc[i].astype(str)).lower()
+            if 'edad' in row_str or 'age' in row_str or 'intercept' in row_str or 'b0' in row_str:
+                header_idx = i
+                break
+                
+        df_int = df_int_raw.copy()
+        df_int.columns = df_int.iloc[header_idx]
+        df_int = df_int.iloc[header_idx+1:].reset_index(drop=True)
+
+        # Buscar las columnas por nombre sin importar su posición (inmune a columnas vacías)
+        cols = df_int.columns.astype(str).str.lower()
+        col_edad = df_int.columns[cols.str.contains('edad|age')][0] if any(cols.str.contains('edad|age')) else df_int.columns[0]
+        col_b0 = df_int.columns[cols.str.contains('0|intercept')][0] if any(cols.str.contains('0|intercept')) else df_int.columns[1]
+        col_b1 = df_int.columns[cols.str.contains('1|estatura|talla')][0] if any(cols.str.contains('1|estatura|talla')) else df_int.columns[2]
+        col_b2 = df_int.columns[cols.str.contains('2|peso')][0] if any(cols.str.contains('2|peso')) else df_int.columns[3]
+        col_b3 = df_int.columns[cols.str.contains('3|padres|media')][0] if any(cols.str.contains('3|padres|media')) else df_int.columns[4]
+
+        df_int = df_int[[col_edad, col_b0, col_b1, col_b2, col_b3]].copy()
         df_int.columns = ['Edad_Anios', 'B0', 'B1', 'B2', 'B3']
 
+        # Limpieza extrema de caracteres (comas europeas, espacios, etc)
         for c in df_int.columns:
-            if df_int[c].dtype == object:
-                df_int[c] = df_int[c].astype(str).str.replace(',', '.')
-            df_int[c] = pd.to_numeric(df_int[c], errors='coerce')
+            s = df_int[c].astype(str).str.strip().str.replace(',', '.')
+            s = s.str.replace(r'[^\d\.-]', '', regex=True)
+            df_int[c] = pd.to_numeric(s, errors='coerce')
 
-        df_int = df_int.dropna(subset=['Edad_Anios'])
-        
-        # TRUCO MAESTRO: Transformamos el float a String exacto (ej. "14.5")
+        df_int = df_int.dropna(subset=['Edad_Anios', 'B0'])
         df_int['Key_Edad'] = df_int['Edad_Anios'].apply(lambda x: f"{float(x):.1f}")
 
     except Exception as e:
-        st.error(f"Error de conexión en la nube: {e}")
+        st.error(f"Error procesando datos en la nube: {e}")
         st.stop()
 
     cols_limpiar = ['Altura de Pie ', 'Altura sentado', 'Peso', 'Altura del padre', 'Altura de la madre']
@@ -121,15 +139,13 @@ def load_data_v23():
     df['Edad Biológica'] = df['Edad_Decimal'] + df['M.O']
     df['Edad PHV'] = df['Edad_Decimal'] - df['M.O']
 
-    # TRUCO MAESTRO: Transformamos la otra llave a String exacto también
     df['EdadParaTabla'] = (np.floor(df['Edad_Decimal'] * 2 + 0.5) / 2)
     df['Key_Edad'] = df['EdadParaTabla'].apply(lambda x: f"{float(x):.1f}" if pd.notna(x) else "NaN")
     
-    # Merge usando las llaves de texto garantizando precisión absoluta
     df = pd.merge(df, df_int, on='Key_Edad', how='left')
     
     if df['B0'].isna().all() and not df.empty:
-        st.error(f"Debug: df['Key']={df['Key_Edad'].iloc[0]} | df_int['Key']={df_int['Key_Edad'].iloc[0]}")
+        st.error("Error crítico: Imposible alinear interceptos. Verifica el formato en Sheets.")
         st.stop()
     
     df['Altura_Adulta_Predicha'] = df['B0'] + (df['B1'] * df['Altura de Pie ']) + (df['B2'] * df['Peso']) + (df['B3'] * df['Predictor_Genetico'])
