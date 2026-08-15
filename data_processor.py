@@ -18,7 +18,7 @@ def get_image_bytes(url):
         return None
 
 @st.cache_data(ttl=60)
-def load_data_v22():
+def load_data_v23():
     import pandas as pd
     import numpy as np
     import streamlit as st
@@ -33,28 +33,21 @@ def load_data_v22():
     url_datos = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID_DATOS}"
     url_interceptos = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID_INTERCEPTOS}"
 
-    # Disfraz de navegador para evitar el bloqueo 403/429 de Google Sheets en la nube
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/csv"
-    }
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
 
     try:
-        # 1. Descargar Datos
         res_datos = requests.get(url_datos, headers=headers, timeout=15)
         if res_datos.status_code != 200 or '<html' in res_datos.text[:100].lower():
-            st.error(f"Error bloqueado por Google en DATOS. HTTP {res_datos.status_code}")
+            st.error("Error bloqueado por Google en DATOS")
             st.stop()
         df = pd.read_csv(BytesIO(res_datos.content))
         df = df.dropna(subset=['Nombre y Apellido', 'Fecha de Evaluacion'], how='all')
 
-        # PAUSA para evitar el límite de peticiones (Rate Limit) de Google
         time.sleep(1.5)
 
-        # 2. Descargar Interceptos
         res_int = requests.get(url_interceptos, headers=headers, timeout=15)
         if res_int.status_code != 200 or '<html' in res_int.text[:100].lower():
-            st.error(f"Error bloqueado por Google en INTERCEPTOS. HTTP {res_int.status_code}")
+            st.error("Error bloqueado por Google en INTERCEPTOS")
             st.stop()
             
         df_int = pd.read_csv(BytesIO(res_int.content))
@@ -67,8 +60,9 @@ def load_data_v22():
             df_int[c] = pd.to_numeric(df_int[c], errors='coerce')
 
         df_int = df_int.dropna(subset=['Edad_Anios'])
-        # Forzar tipo float64 y redondear
-        df_int['Edad_Anios'] = df_int['Edad_Anios'].astype(float).round(1)
+        
+        # TRUCO MAESTRO: Transformamos el float a String exacto (ej. "14.5")
+        df_int['Key_Edad'] = df_int['Edad_Anios'].apply(lambda x: f"{float(x):.1f}")
 
     except Exception as e:
         st.error(f"Error de conexión en la nube: {e}")
@@ -127,15 +121,15 @@ def load_data_v22():
     df['Edad Biológica'] = df['Edad_Decimal'] + df['M.O']
     df['Edad PHV'] = df['Edad_Decimal'] - df['M.O']
 
-    # FIX CRÍTICO DEL MERGE PARA LINUX
-    df['EdadParaTabla'] = (np.floor(df['Edad_Decimal'] * 2 + 0.5) / 2).astype(float).round(1)
+    # TRUCO MAESTRO: Transformamos la otra llave a String exacto también
+    df['EdadParaTabla'] = (np.floor(df['Edad_Decimal'] * 2 + 0.5) / 2)
+    df['Key_Edad'] = df['EdadParaTabla'].apply(lambda x: f"{float(x):.1f}" if pd.notna(x) else "NaN")
     
-    # Comprobar si el merge fallará antes de hacerlo
-    df = pd.merge(df, df_int, left_on='EdadParaTabla', right_on='Edad_Anios', how='left')
+    # Merge usando las llaves de texto garantizando precisión absoluta
+    df = pd.merge(df, df_int, on='Key_Edad', how='left')
     
-    # Si después del merge B0 es NaN, mostramos error exacto
     if df['B0'].isna().all() and not df.empty:
-        st.error("Error crítico: El cruce de edades falló en la nube. Las variables de intercepto están vacías.")
+        st.error(f"Debug: df['Key']={df['Key_Edad'].iloc[0]} | df_int['Key']={df_int['Key_Edad'].iloc[0]}")
         st.stop()
     
     df['Altura_Adulta_Predicha'] = df['B0'] + (df['B1'] * df['Altura de Pie ']) + (df['B2'] * df['Peso']) + (df['B3'] * df['Predictor_Genetico'])
