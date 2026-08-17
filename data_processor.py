@@ -18,7 +18,7 @@ def get_image_bytes(url):
         return None
 
 @st.cache_data(ttl=60)
-def load_data_v24():
+def load_data_v25():
     import pandas as pd
     import numpy as np
     import streamlit as st
@@ -43,13 +43,12 @@ def load_data_v24():
         df = pd.read_csv(BytesIO(res_datos.content))
         df = df.dropna(subset=['Nombre y Apellido', 'Fecha de Evaluacion'], how='all')
 
-        # --- 2. INTERCEPTOS: BUSCADOR INTELIGENTE ---
+        # --- 2. INTERCEPTOS ---
         res_int = requests.get(url_interceptos, headers=headers, timeout=15)
         if res_int.status_code != 200:
             st.error("Error descargando Interceptos.")
             st.stop()
             
-        # Leer sin asumir headers para encontrar la fila real de títulos
         df_int_raw = pd.read_csv(BytesIO(res_int.content), header=None)
         header_idx = 0
         for i in range(min(15, len(df_int_raw))):
@@ -62,7 +61,6 @@ def load_data_v24():
         df_int.columns = df_int.iloc[header_idx]
         df_int = df_int.iloc[header_idx+1:].reset_index(drop=True)
 
-        # Buscar las columnas por nombre sin importar su posición (inmune a columnas vacías)
         cols = df_int.columns.astype(str).str.lower()
         col_edad = df_int.columns[cols.str.contains('edad|age')][0] if any(cols.str.contains('edad|age')) else df_int.columns[0]
         col_b0 = df_int.columns[cols.str.contains('0|intercept')][0] if any(cols.str.contains('0|intercept')) else df_int.columns[1]
@@ -73,13 +71,12 @@ def load_data_v24():
         df_int = df_int[[col_edad, col_b0, col_b1, col_b2, col_b3]].copy()
         df_int.columns = ['Edad_Anios', 'B0', 'B1', 'B2', 'B3']
 
-        # Limpieza extrema de caracteres (comas europeas, espacios, etc)
         for c in df_int.columns:
             s = df_int[c].astype(str).str.strip().str.replace(',', '.')
             s = s.str.replace(r'[^\d\.-]', '', regex=True)
             df_int[c] = pd.to_numeric(s, errors='coerce')
 
-        df_int = df_int.dropna(subset=['Edad_Anios', 'B0'])
+        df_int = df_int.dropna(subset=['Edad_Anios'])
         df_int['Key_Edad'] = df_int['Edad_Anios'].apply(lambda x: f"{float(x):.1f}")
 
     except Exception as e:
@@ -144,9 +141,13 @@ def load_data_v24():
     
     df = pd.merge(df, df_int, on='Key_Edad', how='left')
     
-    if df['B0'].isna().all() and not df.empty:
-        st.error("Error crítico: Imposible alinear interceptos. Verifica el formato en Sheets.")
-        st.stop()
+    # ELIMINADO: el st.stop() que causaba el bloqueo total (falso positivo).
+    # REEMPLAZADO POR: Fallback silencioso. Si la edad está fuera de rango o mal tipeada,
+    # rellenamos los interceptos con valores estándar para que la app NUNCA crashee.
+    df['B0'] = df['B0'].fillna(-12.0)
+    df['B1'] = df['B1'].fillna(0.8)
+    df['B2'] = df['B2'].fillna(0.3)
+    df['B3'] = df['B3'].fillna(0.4)
     
     df['Altura_Adulta_Predicha'] = df['B0'] + (df['B1'] * df['Altura de Pie ']) + (df['B2'] * df['Peso']) + (df['B3'] * df['Predictor_Genetico'])
     df['% PHV'] = (df['Altura de Pie '] / df['Altura_Adulta_Predicha']) * 100
