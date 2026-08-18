@@ -279,16 +279,15 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
         except: pass
 
     # =========================================================
-    # PÁGINA 3: MONITOR DE MADURACIÓN
+    # PÁGINA 3: MONITOR DE MADURACIÓN Y ESTRATEGIA
     # =========================================================
-    add_page_header("Monitor de Maduración")
+    add_page_header("Monitor de Maduración y Estrategia")
     
     pdf.set_y(50)
     df_bar = df_filtrado.dropna(subset=['% PHV']).sort_values('Nombre y Apellido')
     if not df_bar.empty:
         y_max = max(105, df_bar['% PHV'].max() * 1.05)
         colors_b = ['#10B981' if val < 85 else ('#F59E0B' if val < 95 else '#EF4444') for val in df_bar['% PHV']]
-        # FIX: Etiqueta Y renombrada a % PHA
         fig_b = px.bar(df_bar, x='Nombre y Apellido', y='% PHV', title="Distribución del Estatus Madurativo (%PAH)", labels={'% PHV': '% PHA'})
         fig_b.update_traces(marker_color=colors_b, texttemplate='%{y:.1f}%', textposition='outside')
         fig_b.add_hline(y=85, line_dash="dash", line_color="#10B981", line_width=2, layer="below")
@@ -301,20 +300,94 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
             pdf.image(BytesIO(img_b_bytes), x=10, y=50, w=190)
         except: pass
 
-    if not df_plot.empty:
-        fig_c = px.scatter(df_plot, x='M.O', y='Gr.T', title=f"Ubicación de {jug_sel} en el Plantel")
-        fig_c.update_traces(marker=dict(size=14, color='#95A5A6', line=dict(width=1, color='white')))
-        fig_c.add_hline(y=7, line_dash="dash", line_color="#EF4444", line_width=2)
-        fig_c.add_vline(x=0, line_dash="dash", line_color="#EF4444", line_width=2)
-        if not data_jug.empty:
-            fig_c.add_scatter(x=data_jug['M.O'], y=data_jug['Gr.T'], mode='markers', marker=dict(size=24, color='#F59E0B', symbol='star', line=dict(width=2, color='black')), name=jug_sel)
-        fig_c.update_layout(width=960, height=480, title_x=0.5, plot_bgcolor='white', xaxis_range=[-3, 3], yaxis_range=[0, 20], margin=dict(l=60, r=50, t=50, b=60), font=dict(size=16, family='Agency FB'))
-        fig_c.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title="Tiempo al PHV (Años)")
-        fig_c.update_yaxes(showgrid=True, gridcolor='#EFEFEF', title="Velocidad de Crecimiento (cm/año)")
+    # =========================================================
+    # ESTRATEGIA DE ENTRENAMIENTO EN PDF (Mitad inferior Pág 3)
+    # =========================================================
+    pdf.set_y(155)
+    pdf.set_font(font_name, "", 22)
+    pdf.set_text_color(15, 23, 42)
+    pdf.cell(0, 10, "Estrategia de Entrenamiento Personalizada", ln=True, align="C")
+    pdf.ln(5)
+
+    if not data_jug.empty:
+        mo_val = data_jug['M.O'].values[0]
+        grt_val = data_jug['Gr.T'].values[0]
+
+        # Lógica de Fases
+        if mo_val < -1:
+            fase = "PRE-PHV (Fase Temprana)"
+            foco_f = "- Fuerza: Dominio del peso corporal, saltos basicos.\n- Velocidad: Agilidad multidireccional.\n- Resistencia: Desarrollo aerobico ludico."
+            foco_t = "- Alta capacidad de aprendizaje motor. \n- Fomentar la exploracion de posiciones."
+            riesgo = "Riesgo Bajo/Moderado. Monitorear talones (Sever)."
+            r_fill, g_fill, b_fill = 209, 250, 229 
+            r_txt, g_txt, b_txt = 16, 185, 129     
+        elif -1 <= mo_val <= 1:
+            fase = "CIRCA-PHV (Ventana de Estiron Puberal)"
+            foco_f = "- Fuerza: Mantenimiento. Estabilidad del Core. Cero cargas axiales.\n- Velocidad: Foco en tecnica de carrera.\n- Prevencion: Reduccion de impactos intensos."
+            foco_t = "- Torpeza Adolescente: Paciencia con la regresion tecnica.\n- Priorizar habilidades simples."
+            riesgo = "Riesgo MUY ALTO (Osgood-Schlatter, tendinopatias). Controlar carga."
+            r_fill, g_fill, b_fill = 254, 243, 199 
+            r_txt, g_txt, b_txt = 245, 158, 11     
+        else:
+            fase = "POST-PHV (Fase de Maduracion Final)"
+            foco_f = "- Fuerza: Optimo para hipertrofia. Potencia estructural.\n- Velocidad: Sprints intensivos.\n- Resistencia: HIIT."
+            foco_t = "- Estabilizacion de palancas. Coordinacion fina recuperada.\n- Especializacion tactica posicional."
+            riesgo = "Riesgo muscular adulto. Foco en asimetrias articulares."
+            r_fill, g_fill, b_fill = 219, 234, 254 
+            r_txt, g_txt, b_txt = 59, 130, 246     
+
+        # Alertas de Crecimiento
+        if pd.isna(grt_val):
+            alerta = "Datos de velocidad insuficientes. Se aplican recomendaciones base."
+            c_r, c_g, c_b = 100, 116, 139
+        elif grt_val >= 7.2:
+            alerta = f"ALERTA ROJA ({grt_val:.1f} cm/ano): Reducir volumen semanal. Cero pliometria."
+            c_r, c_g, c_b = 239, 68, 68
+        elif grt_val >= 5:
+            alerta = f"ALERTA AMARILLA ({grt_val:.1f} cm/ano): Monitorear fatiga y dolores articulares."
+            c_r, c_g, c_b = 245, 158, 11
+        else:
+            alerta = f"LUZ VERDE ({grt_val:.1f} cm/ano): Tolerancia a cargas progresivas estable."
+            c_r, c_g, c_b = 16, 185, 129
+
+        # Cajas de color Estatus
+        pdf.set_fill_color(r_fill, g_fill, b_fill)
+        pdf.set_font(font_name, "", 14)
+        pdf.set_text_color(r_txt, g_txt, b_txt)
+        pdf.cell(0, 8, f"ESTATUS: {fase}", border=0, ln=True, fill=True, align="C")
         
-        try:
-            img_c_bytes = safe_render_fig(fig_c)
-            pdf.image(BytesIO(img_c_bytes), x=10, y=145, w=190)
-        except: pass
+        pdf.set_text_color(c_r, c_g, c_b)
+        pdf.cell(0, 8, f"ALERTA VELOCIDAD: {alerta}", border=0, ln=True, fill=True, align="C")
+        pdf.ln(4)
+
+        pdf.set_font(font_name, "", 14)
+        pdf.set_text_color(50, 50, 50)
+        pdf.cell(0, 6, f"Perfil de Riesgo: {riesgo}", border=0, ln=True, align="C")
+        pdf.ln(4)
+
+        y_cols = pdf.get_y()
+        
+        # Columna 1
+        pdf.set_xy(10, y_cols)
+        pdf.set_font(font_name, "", 16)
+        pdf.set_text_color(15, 23, 42)
+        pdf.cell(90, 8, "Foco Condicional", ln=True)
+        pdf.set_font(font_name, "", 12)
+        pdf.set_text_color(80, 80, 80)
+        pdf.multi_cell(90, 6, foco_f, border=0)
+        
+        # Columna 2
+        pdf.set_xy(105, y_cols)
+        pdf.set_font(font_name, "", 16)
+        pdf.set_text_color(15, 23, 42)
+        pdf.cell(90, 8, "Foco Tecnico-Tactico", ln=True)
+        pdf.set_font(font_name, "", 12)
+        pdf.set_text_color(80, 80, 80)
+        pdf.multi_cell(90, 6, foco_t, border=0)
+
+    else:
+        pdf.set_font(font_name, "", 14)
+        pdf.set_text_color(100, 100, 100)
+        pdf.cell(0, 10, "Seleccione un jugador especifico para ver las estrategias.", ln=True, align="C")
 
     return bytes(pdf.output())
