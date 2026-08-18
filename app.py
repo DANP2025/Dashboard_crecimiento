@@ -198,7 +198,7 @@ if not df_latest.empty:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    tab_dep, tab_perf, tab_con = st.tabs(["👥 Matriz Plantel", "👤 Perfil Individual", "🌍 Monitor de Maduración"])
+    tab_dep, tab_perf, tab_con, tab_est = st.tabs(["👥 Matriz Plantel", "👤 Perfil Individual", "🌍 Monitor de Maduración", "🏋️‍♂️ Estrategia de Entrenamiento"])
 
     plotly_font_config = dict(size=20, color="#333", family="Agency FB, Segoe UI, Arial")
     plotly_hover_config = dict(font_size=22, font_family="Agency FB, Segoe UI, Arial")
@@ -421,3 +421,91 @@ if not df_latest.empty:
             fig_c.update_xaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_text="Tiempo al PHV (Años)", title_font=dict(size=20, weight='bold'), hoverformat=".2f")
             fig_c.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#EFEFEF', zeroline=False, title_text="Velocidad de Crecimiento (Δ cm/año)", title_font=dict(size=20, weight='bold'), hoverformat=".2f")
             st.plotly_chart(fig_c, use_container_width=True)
+
+    # ==========================================
+    # TAB 4: ESTRATEGIA DE ENTRENAMIENTO
+    # ==========================================
+    with tab_est:
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        if jug_sel == "Todos" or data_jug.empty:
+            st.markdown("""
+            <div style='display: flex; justify-content: center; align-items: center; height: 300px; border: 2px dashed #BDC3C7; border-radius: 10px; background-color: #F8F9FA;'>
+                <p style='color: #7F8C8D; font-family: "Agency FB"; font-size: 2rem; margin: 0; text-align: center;'>⚠️ Selecciona un jugador específico en la barra superior para generar su estrategia de entrenamiento personalizada.</p>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            mo_val = data_jug['M.O'].values[0]
+            phv_pct = data_jug['% PHV'].values[0]
+            grt_val = data_jug['Gr.T'].values[0]
+            
+            # Clasificación de Fase
+            if mo_val < -1:
+                fase = "PRE-PHV (Fase Temprana)"
+                color_fase = "#10B981" # Verde
+                foco_fisico = "<ul><li><b>Fuerza:</b> Dominio del peso corporal, saltos básicos, técnica de patrones de movimiento.</li><li><b>Velocidad:</b> Agilidad multidireccional, velocidad de reacción (neural).</li><li><b>Resistencia:</b> Juegos reducidos, desarrollo aeróbico lúdico.</li></ul>"
+                foco_tec = "<ul><li>Alta capacidad de aprendizaje motor. Ideal para adquirir gestos técnicos complejos.</li><li>Fomentar la exploración de diferentes posiciones en el campo.</li></ul>"
+                riesgo = "Riesgo Bajo/Moderado. Monitorear inicio de molestias en talones (Enfermedad de Sever)."
+            elif -1 <= mo_val <= 1:
+                fase = "CIRCA-PHV (Ventana de Estirón Puberal)"
+                color_fase = "#F59E0B" # Amarillo/Naranja
+                foco_fisico = "<ul><li><b>Fuerza:</b> Mantenimiento de fuerza base. Movilidad articular y estabilidad del Core (Core Stability). Evitar cargas máximas espinales.</li><li><b>Velocidad:</b> Foco en técnica de carrera, adaptación a las nuevas palancas óseas.</li><li><b>Prevención:</b> Reducción de impactos y pliometría intensa.</li></ul>"
+                foco_tec = "<ul><li><b>Torpeza Adolescente (Adolescent Awkwardness):</b> Pérdida temporal de coordinación. Tener paciencia con la regresión técnica.</li><li>Priorizar habilidades simples y toma de decisión.</li></ul>"
+                riesgo = "Riesgo MUY ALTO de lesiones de cartílago de crecimiento (Osgood-Schlatter, tendinopatías). Controlar volumen."
+            else:
+                fase = "POST-PHV (Fase de Maduración Final)"
+                color_fase = "#3B82F6" # Azul
+                foco_fisico = "<ul><li><b>Fuerza:</b> Ventana óptima para hipertrofia (pico de testosterona). Entrenamiento de fuerza estructural y potencia (Pesas).</li><li><b>Velocidad:</b> Entrenamientos intensivos de sprint y capacidad anaeróbica láctica.</li><li><b>Resistencia:</b> Trabajo intervalado de alta intensidad (HIIT).</li></ul>"
+                foco_tec = "<ul><li>Estabilización de palancas articulares. Coordinación fina recuperada.</li><li>Especialización en tareas posicionales exigentes.</li></ul>"
+                riesgo = "Riesgo muscular y articular adulto. Foco en asimetrías y prevención de ligamentos cruzados."
+
+            # Control de Velocidad de Crecimiento
+            if pd.isna(grt_val):
+                alerta_carga = "<span style='color: #64748B;'>⚠️ <i>Datos de velocidad de crecimiento (Δ cm/año) insuficientes. Requiere al menos 2 evaluaciones históricas para medir la tasa exacta. Se aplican recomendaciones base.</i></span>"
+            elif grt_val >= 7.2:
+                alerta_carga = f"<span style='color: #EF4444; font-weight: 800;'>🚨 ALERTA ROJA (Crecimiento Acelerado: {grt_val:.1f} cm/año):</span> Obligatorio reducir el volumen total de entrenamiento semanal. Evitar jornadas dobles. Cero pliometría de alto impacto."
+            elif grt_val >= 5:
+                alerta_carga = f"<span style='color: #F59E0B; font-weight: 800;'>⚠️ ALERTA AMARILLA (Crecimiento Moderado: {grt_val:.1f} cm/año):</span> Monitorear fatiga y dolores articulares. Mantener cargas estándar pero con flexibilidad de descanso."
+            else:
+                alerta_carga = f"<span style='color: #10B981; font-weight: 800;'>✅ LUZ VERDE (Crecimiento Estable: {grt_val:.1f} cm/año):</span> El sistema musculoesquelético puede tolerar cargas progresivas y desarrollo de fuerza sin restricciones de crecimiento."
+
+            st.markdown(f"""
+            <div style="background-color: {color_fase}20; border-left: 8px solid {color_fase}; padding: 20px; border-radius: 10px; margin-bottom: 25px;">
+                <h3 style="color: {color_fase}; font-size: 2.2rem; font-weight: 900; margin-top: 0; margin-bottom: 5px;">ESTATUS BIOLÓGICO: {fase}</h3>
+                <p style="font-size: 1.3rem; color: #333; font-family: 'Agency FB'; margin-bottom: 0;"><b>Maturity Offset:</b> {mo_val:.2f} años al PHV | <b>Estatura Adulta Predicha:</b> {phv_pct:.1f}%</p>
+            </div>
+            
+            <div style="background-color: #F8F9FA; border: 1px solid #E2E8F0; padding: 20px; border-radius: 10px; margin-bottom: 25px;">
+                <h4 style="color: #0F172A; font-size: 1.8rem; font-weight: 800; margin-top: 0; margin-bottom: 10px;">📊 CONTROL DE CARGAS Y RIESGO DE LESIÓN</h4>
+                <p style="font-size: 1.3rem; color: #333; font-family: 'Agency FB'; margin-bottom: 15px;"><b>Perfil de Riesgo:</b> {riesgo}</p>
+                <p style="font-size: 1.3rem; font-family: 'Agency FB'; margin-bottom: 0;">{alerta_carga}</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            c1, c2 = st.columns(2)
+            with c1:
+                st.markdown(f"""
+                <div class="kpi-card" style="height: 100%; border-left-color: #3B82F6;">
+                    <h4 style="color: #0F172A; font-size: 1.8rem; font-weight: 800; margin-top: 0; margin-bottom: 15px;">🏃‍♂️ FOCO CONDICIONAL (Modelo YPD)</h4>
+                    <div style="font-size: 1.25rem; color: #475569; font-family: 'Agency FB'; line-height: 1.4;">
+                        {foco_fisico}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            with c2:
+                st.markdown(f"""
+                <div class="kpi-card" style="height: 100%; border-left-color: #3B82F6;">
+                    <h4 style="color: #0F172A; font-size: 1.8rem; font-weight: 800; margin-top: 0; margin-bottom: 15px;">⚽ FOCO TÉCNICO-TÁCTICO</h4>
+                    <div style="font-size: 1.25rem; color: #475569; font-family: 'Agency FB'; line-height: 1.4;">
+                        {foco_tec}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+            st.markdown("""
+            <div style='margin-top: 30px; text-align: center;'>
+                <p style='color: #94A3B8; font-size: 1rem; font-family: "Segoe UI", sans-serif; font-style: italic;'>
+                *Recomendaciones formuladas científicamente en base al Youth Physical Development Model (Lloyd & Oliver, 2012), lineamientos LTAD (Balyi et al., 2013) y directrices de Bio-Banding en Premier League (Cumming et al., 2017).
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
