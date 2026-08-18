@@ -82,9 +82,9 @@ def get_base64_image(img_bytes):
 
 logo_html = ""
 try:
-    with open("logo.jpeg", "rb") as image_file:
+    with open("LogoDaniel Peso.png", "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read()).decode()
-    logo_html = f"<img src='data:image/jpeg;base64,{encoded_string}' style='width: 110px; margin-bottom: 15px;'>"
+    logo_html = f"<img src='data:image/png;base64,{encoded_string}' style='width: 110px; margin-bottom: 15px;'>"
 except: pass
 
 
