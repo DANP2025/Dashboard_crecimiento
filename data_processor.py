@@ -18,7 +18,7 @@ def get_image_bytes(url):
         return None
 
 @st.cache_data(ttl=60)
-def load_data_v25():
+def load_data_v26():
     import pandas as pd
     import numpy as np
     import streamlit as st
@@ -110,6 +110,20 @@ def load_data_v25():
                 df[col] = df[col].replace(r'^\s*$', np.nan, regex=True)
             df[col] = df.groupby('DNI')[col].ffill().bfill()
 
+    # FIX CRÍTICO PARA FOTOS: Usar el endpoint thumbnail en lugar de uc?export=download
+    def normalize_photo_url(url):
+        if pd.isna(url) or str(url).strip() == "": return np.nan
+        url_str = str(url).strip()
+        import re
+        match1 = re.search(r'/d/([a-zA-Z0-9_-]+)', url_str)
+        match3 = re.search(r'id=([a-zA-Z0-9_-]+)', url_str)
+        if match1: return f"https://drive.google.com/thumbnail?id={match1.group(1)}&sz=w800"
+        elif match3: return f"https://drive.google.com/thumbnail?id={match3.group(1)}&sz=w800"
+        return url_str
+
+    if 'URLFOTO' in df.columns:
+        df['URLFOTO'] = df['URLFOTO'].apply(normalize_photo_url)
+
     df['Delta_Altura_cm'] = df.groupby('DNI')['Altura de Pie '].diff()
     df['Delta_Edad_años'] = df.groupby('DNI')['Edad_Decimal'].diff()
     df['Gr.T'] = np.where(df['Delta_Edad_años'] > 0, df['Delta_Altura_cm'] / df['Delta_Edad_años'], np.nan)
@@ -141,9 +155,6 @@ def load_data_v25():
     
     df = pd.merge(df, df_int, on='Key_Edad', how='left')
     
-    # ELIMINADO: el st.stop() que causaba el bloqueo total (falso positivo).
-    # REEMPLAZADO POR: Fallback silencioso. Si la edad está fuera de rango o mal tipeada,
-    # rellenamos los interceptos con valores estándar para que la app NUNCA crashee.
     df['B0'] = df['B0'].fillna(-12.0)
     df['B1'] = df['B1'].fillna(0.8)
     df['B2'] = df['B2'].fillna(0.3)
@@ -154,7 +165,7 @@ def load_data_v25():
 
     def categorizar(row):
         if pd.isna(row['M.O']) or pd.isna(row['Gr.T']): return "Sin datos"
-        if row['M.O'] < 0 and row['Gr.T'] < 7: return "Entrenamiento normal. Enfocar en técnica."
+        if row['M.O'] < 0 and row['Gr.T'] < 7: return "Entrenamiento normal. Enfocar en tecnica."
         if row['M.O'] < 0 and row['Gr.T'] >= 7: return "Reducir volumen. Evitar picos."
         if row['M.O'] >= 0 and row['Gr.T'] < 7: return "Progresión de fuerza."
         return "Limitar impacto."
