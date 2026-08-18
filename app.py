@@ -459,15 +459,15 @@ if not df_latest.empty:
                 foco_tec = "<ul><li>Estabilización de palancas articulares. Coordinación fina recuperada.</li><li>Especialización en tareas posicionales exigentes.</li></ul>"
                 riesgo = "Riesgo muscular y articular adulto. Foco en asimetrías y prevención de ligamentos cruzados."
 
-            # Control de Velocidad de Crecimiento
+            # Control de Tasa de Crecimiento
             if pd.isna(grt_val):
-                alerta_carga = "<span style='color: #64748B;'>⚠️ <i>Datos de velocidad de crecimiento (Δ cm/año) insuficientes. Requiere al menos 2 evaluaciones históricas para medir la tasa exacta. Se aplican recomendaciones base.</i></span>"
+                alerta_carga = "<span style='color: #64748B;'>⚠️ <i>TASA DE CRECIMIENTO: Faltan evaluaciones previas para medir el estirón (Δ cm/año). Se asume un ritmo estable.</i></span>"
             elif grt_val >= 7.2:
-                alerta_carga = f"<span style='color: #EF4444; font-weight: 800;'>🚨 ALERTA ROJA (Crecimiento Acelerado: {grt_val:.1f} cm/año):</span> Obligatorio reducir el volumen total de entrenamiento semanal. Evitar jornadas dobles. Cero pliometría de alto impacto."
+                alerta_carga = f"<span style='color: #EF4444; font-weight: 800;'>🚨 CRECIMIENTO ACELERADO ({grt_val:.1f} cm/año):</span> Estirón puberal intenso. Reducir volumen semanal y saltos."
             elif grt_val >= 5:
-                alerta_carga = f"<span style='color: #F59E0B; font-weight: 800;'>⚠️ ALERTA AMARILLA (Crecimiento Moderado: {grt_val:.1f} cm/año):</span> Monitorear fatiga y dolores articulares. Mantener cargas estándar pero con flexibilidad de descanso."
+                alerta_carga = f"<span style='color: #F59E0B; font-weight: 800;'>⚠️ CRECIMIENTO MODERADO ({grt_val:.1f} cm/año):</span> Fase inicial/final del estirón. Monitorear fatiga articular."
             else:
-                alerta_carga = f"<span style='color: #10B981; font-weight: 800;'>✅ LUZ VERDE (Crecimiento Estable: {grt_val:.1f} cm/año):</span> El sistema musculoesquelético puede tolerar cargas progresivas y desarrollo de fuerza sin restricciones de crecimiento."
+                alerta_carga = f"<span style='color: #10B981; font-weight: 800;'>✅ CRECIMIENTO ESTABLE ({grt_val:.1f} cm/año):</span> Fase de meseta. Luz verde para cargas progresivas de fuerza."
 
             st.markdown(f"""
             <div style="background-color: {color_fase}20; border-left: 8px solid {color_fase}; padding: 20px; border-radius: 10px; margin-bottom: 25px;">
@@ -476,7 +476,7 @@ if not df_latest.empty:
             </div>
             
             <div style="background-color: #F8F9FA; border: 1px solid #E2E8F0; padding: 20px; border-radius: 10px; margin-bottom: 25px;">
-                <h4 style="color: #0F172A; font-size: 1.8rem; font-weight: 800; margin-top: 0; margin-bottom: 10px;">📊 CONTROL DE CARGAS Y RIESGO DE LESIÓN</h4>
+                <h4 style="color: #0F172A; font-size: 1.8rem; font-weight: 800; margin-top: 0; margin-bottom: 10px;">📊 TASA DE CRECIMIENTO Y RIESGO DE LESIÓN</h4>
                 <p style="font-size: 1.3rem; color: #333; font-family: 'Agency FB'; margin-bottom: 15px;"><b>Perfil de Riesgo:</b> {riesgo}</p>
                 <p style="font-size: 1.3rem; font-family: 'Agency FB'; margin-bottom: 0;">{alerta_carga}</p>
             </div>

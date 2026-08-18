@@ -304,97 +304,90 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     # ESTRATEGIA DE ENTRENAMIENTO EN PDF (Mitad inferior Pág 3)
     # =========================================================
     pdf.set_y(150)
-    pdf.set_font(font_name, "", 24)
+    pdf.set_font(font_name, "", 20) # Tamaño reducido para que no se salga de los márgenes
     pdf.set_text_color(15, 23, 42)
     pdf.cell(0, 10, "ESTRATEGIA DE ENTRENAMIENTO PERSONALIZADA", ln=True, align="C")
-    pdf.ln(3)
+    pdf.ln(2)
 
     if not data_jug.empty:
         mo_val = data_jug['M.O'].values[0]
         grt_val = data_jug['Gr.T'].values[0]
 
-        # Lógica de Fases y Paletas de Colores
+        # Lógica de Fases
         if mo_val < -1:
             fase = "PRE-PHV (Fase Temprana)"
             foco_f = "Fuerza: Dominio del peso corporal, saltos basicos.\nVelocidad: Agilidad multidireccional.\nResistencia: Desarrollo aerobico ludico."
             foco_t = "Alta capacidad de aprendizaje motor.\nFomentar la exploracion de posiciones."
             riesgo = "Riesgo Bajo/Moderado. Monitorear talones (Sever)."
-            c_fill = (209, 250, 229) # Fondo Verde Pastel
-            c_txt = (16, 185, 129)   # Texto Verde Oscuro
+            c_fill = (209, 250, 229) 
+            c_txt = (16, 185, 129)   
         elif -1 <= mo_val <= 1:
             fase = "CIRCA-PHV (Ventana de Estiron Puberal)"
             foco_f = "Fuerza: Mantenimiento. Estabilidad del Core. Cero cargas axiales.\nVelocidad: Foco en tecnica de carrera.\nPrevencion: Reduccion de impactos intensos."
             foco_t = "Torpeza Adolescente: Paciencia con la regresion tecnica.\nPriorizar habilidades simples."
             riesgo = "Riesgo MUY ALTO (Osgood-Schlatter, tendinopatias). Controlar carga."
-            c_fill = (254, 243, 199) # Fondo Amarillo Pastel
-            c_txt = (217, 119, 6)    # Texto Naranja Oscuro
+            c_fill = (254, 243, 199) 
+            c_txt = (217, 119, 6)    
         else:
             fase = "POST-PHV (Fase de Maduracion Final)"
             foco_f = "Fuerza: Optimo para hipertrofia. Potencia estructural.\nVelocidad: Sprints intensivos.\nResistencia: Trabajo intervalado (HIIT)."
             foco_t = "Estabilizacion de palancas. Coordinacion fina recuperada.\nEspecializacion tactica posicional."
             riesgo = "Riesgo muscular adulto. Foco en asimetrias articulares."
-            c_fill = (219, 234, 254) # Fondo Azul Pastel
-            c_txt = (37, 99, 235)    # Texto Azul Oscuro
+            c_fill = (219, 234, 254) 
+            c_txt = (37, 99, 235)    
 
-        # Alertas de Crecimiento y Paletas
+        # Alertas de Crecimiento Científicas
         if pd.isna(grt_val):
-            alerta = "Datos de velocidad insuficientes. Aplicar recomendaciones base."
-            a_fill = (241, 245, 249) # Gris Pastel
+            alerta = "TASA DE CRECIMIENTO: Faltan evaluaciones previas para calcular los cm/ano. Se asume ritmo estable."
+            a_fill = (241, 245, 249)
             a_txt = (71, 85, 105)
         elif grt_val >= 7.2:
-            alerta = f"ALERTA ROJA ({grt_val:.1f} cm/ano): Reducir volumen semanal. Cero pliometria."
-            a_fill = (254, 226, 226) # Rojo Pastel
+            alerta = f"CRECIMIENTO ACELERADO ({grt_val:.1f} cm/ano): Estiron puberal intenso. Reducir impacto."
+            a_fill = (254, 226, 226)
             a_txt = (220, 38, 38)
         elif grt_val >= 5:
-            alerta = f"ALERTA AMARILLA ({grt_val:.1f} cm/ano): Monitorear fatiga y dolor articular."
+            alerta = f"CRECIMIENTO MODERADO ({grt_val:.1f} cm/ano): Fase del estiron. Monitorear fatiga articular."
             a_fill = (254, 243, 199)
             a_txt = (217, 119, 6)
         else:
-            alerta = f"LUZ VERDE ({grt_val:.1f} cm/ano): Tolerancia a cargas progresivas estable."
+            alerta = f"CRECIMIENTO ESTABLE ({grt_val:.1f} cm/ano): Fase de meseta. Luz verde para cargas."
             a_fill = (209, 250, 229)
             a_txt = (16, 185, 129)
 
-        # Dibujar Bloque 1: Estatus Biológico
+        # Dibujar Bloques con Multi Cell para asegurar Wrapping y que el fondo cubra todo
         pdf.set_fill_color(*c_fill)
         pdf.set_text_color(*c_txt)
-        pdf.set_font(font_name, "", 15)
-        pdf.cell(0, 10, f"ESTATUS: {fase}", border=0, ln=True, fill=True, align="C")
-        pdf.ln(2)
+        pdf.set_font(font_name, "", 14)
+        pdf.multi_cell(0, 8, f"ESTATUS: {fase}", border=0, fill=True, align="C")
+        pdf.ln(1)
 
-        # Dibujar Bloque 2: Alerta Velocidad
         pdf.set_fill_color(*a_fill)
         pdf.set_text_color(*a_txt)
-        pdf.cell(0, 10, f"ALERTA VELOCIDAD: {alerta}", border=0, ln=True, fill=True, align="C")
+        pdf.multi_cell(0, 8, f"{alerta}", border=0, fill=True, align="C")
         pdf.ln(3)
 
-        # Dibujar Bloque 3: Riesgo
+        # Perfil de Riesgo
         pdf.set_font(font_name, "", 14)
         pdf.set_text_color(71, 85, 105)
-        pdf.cell(0, 8, f"Perfil de Riesgo: {riesgo}", border=0, ln=True, align="C")
-        pdf.ln(6)
+        pdf.multi_cell(0, 8, f"Perfil de Riesgo: {riesgo}", border=0, fill=False, align="C")
+        pdf.ln(5)
 
-        # =========================================================
-        # DOS COLUMNAS FIX (Sin overlapping)
-        # =========================================================
+        # Dos Columnas
         y_cols = pdf.get_y()
         
-        # Columna 1: Físico
         pdf.set_xy(10, y_cols)
         pdf.set_font(font_name, "", 18)
         pdf.set_text_color(15, 23, 42)
-        pdf.cell(90, 8, "Foco Condicional", ln=0, align="C") # ln=0 evita que el cursor vuelva a la izq
-        
+        pdf.cell(90, 8, "Foco Condicional", ln=0, align="C")
         pdf.set_xy(10, y_cols + 10)
         pdf.set_font(font_name, "", 13)
         pdf.set_text_color(51, 65, 85)
         pdf.multi_cell(90, 7, foco_f, border=0, align="L")
         
-        # Columna 2: Técnico-Táctico
         pdf.set_xy(105, y_cols)
         pdf.set_font(font_name, "", 18)
         pdf.set_text_color(15, 23, 42)
-        pdf.cell(95, 8, "Foco Tecnico-Tactico", ln=0, align="C") # ln=0 evita overlapping
-        
+        pdf.cell(95, 8, "Foco Tecnico-Tactico", ln=0, align="C")
         pdf.set_xy(105, y_cols + 10)
         pdf.set_font(font_name, "", 13)
         pdf.set_text_color(51, 65, 85)
