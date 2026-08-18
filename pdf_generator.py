@@ -73,7 +73,7 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
     def add_page_header(title):
         pdf.add_page()
         try:
-            pdf.image("LogoDaniel Peso.png", x=175, y=10, w=25)
+            pdf.image("LogoDaniel Peso.png", x=155, y=10, w=45)
         except:
             pass
         pdf.set_font(font_name, "", 26)
