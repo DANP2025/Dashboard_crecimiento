@@ -502,7 +502,7 @@ if not df_latest.empty:
             with c1:
                 st.markdown(f"""
                 <div class="kpi-card" style="height: 100%; border-left-color: #3B82F6;">
-                    <h4 style="color: #0F172A; font-size: 1.8rem; font-weight: 800; margin-top: 0; margin-bottom: 15px;">🏃‍♂️ FOCO CONDICIONAL (Modelo YPD)</h4>
+                    <h4 style="color: #0F172A; font-size: 1.8rem; font-weight: 800; margin-top: 0; margin-bottom: 15px;">🏃‍♂️ FOCO CONDICIONAL</h4>
                     <div style="font-size: 1.25rem; color: #475569; font-family: 'Agency FB'; line-height: 1.4;">
                         {foco_fisico}
                     </div>
@@ -517,11 +517,3 @@ if not df_latest.empty:
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                
-            st.markdown("""
-            <div style='margin-top: 30px; text-align: center;'>
-                <p style='color: #94A3B8; font-size: 1rem; font-family: "Segoe UI", sans-serif; font-style: italic;'>
-                *Recomendaciones formuladas científicamente en base al Youth Physical Development Model (Lloyd & Oliver, 2012), lineamientos LTAD (Balyi et al., 2013) y directrices de Bio-Banding en Premier League (Cumming et al., 2017).
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
