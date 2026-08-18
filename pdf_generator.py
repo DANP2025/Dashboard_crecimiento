@@ -315,42 +315,42 @@ def create_pdf(jug_sel, data_jug, df_filtrado, df_historico):
 
         # Lógica de Fases
         if mo_val < -1:
-            fase = "PRE-PHV (Fase Temprana)"
-            foco_f = "Fuerza: Dominio del peso corporal, saltos basicos.\nVelocidad: Agilidad multidireccional.\nResistencia: Desarrollo aerobico ludico."
-            foco_t = "Alta capacidad de aprendizaje motor.\nFomentar la exploracion de posiciones."
+            fase = "PRE-PHV (Fase Pre-Puberal)"
+            foco_f = "Fuerza: Dominio del peso corporal, saltos básicos.\nVelocidad: Agilidad multidireccional.\nResistencia: Desarrollo aeróbico lúdico."
+            foco_t = "Alta capacidad de aprendizaje motor.\nFomentar la exploración de posiciones."
             riesgo = "Riesgo Bajo/Moderado. Monitorear talones (Sever)."
             c_fill = (209, 250, 229) 
             c_txt = (16, 185, 129)   
         elif -1 <= mo_val <= 1:
-            fase = "CIRCA-PHV (Ventana de Estiron Puberal)"
-            foco_f = "Fuerza: Mantenimiento. Estabilidad del Core. Cero cargas axiales.\nVelocidad: Foco en tecnica de carrera.\nPrevencion: Reduccion de impactos intensos."
-            foco_t = "Torpeza Adolescente: Paciencia con la regresion tecnica.\nPriorizar habilidades simples."
-            riesgo = "Riesgo MUY ALTO (Osgood-Schlatter, tendinopatias). Controlar carga."
+            fase = "CIRCA-PHV (Ventana del Estirón)"
+            foco_f = "Fuerza: Mantenimiento. Estabilidad del Core. Cero cargas axiales.\nVelocidad: Foco en técnica de carrera.\nPrevención: Reducción de impactos intensos."
+            foco_t = "Torpeza Adolescente: Paciencia con la regresión técnica.\nPriorizar habilidades simples."
+            riesgo = "Riesgo MUY ALTO (Osgood-Schlatter, tendinopatías). Controlar carga."
             c_fill = (254, 243, 199) 
             c_txt = (217, 119, 6)    
         else:
-            fase = "POST-PHV (Fase de Maduracion Final)"
-            foco_f = "Fuerza: Optimo para hipertrofia. Potencia estructural.\nVelocidad: Sprints intensivos.\nResistencia: Trabajo intervalado (HIIT)."
-            foco_t = "Estabilizacion de palancas. Coordinacion fina recuperada.\nEspecializacion tactica posicional."
-            riesgo = "Riesgo muscular adulto. Foco en asimetrias articulares."
+            fase = "POST-PHV (Fase de Maduración Final)"
+            foco_f = "Fuerza: Óptimo para hipertrofia. Potencia estructural.\nVelocidad: Sprints intensivos.\nResistencia: Trabajo intervalado (HIIT)."
+            foco_t = "Estabilización de palancas. Coordinación fina recuperada.\nEspecialización táctica posicional."
+            riesgo = "Riesgo muscular adulto. Foco en asimetrías articulares."
             c_fill = (219, 234, 254) 
             c_txt = (37, 99, 235)    
 
         # Alertas de Crecimiento Científicas
         if pd.isna(grt_val):
-            alerta = "TASA DE CRECIMIENTO: Faltan evaluaciones previas para calcular los cm/ano. Se asume ritmo estable."
+            alerta = "TASA DE CRECIMIENTO: Faltan evaluaciones previas para calcular los cm/año. Se asume ritmo estable."
             a_fill = (241, 245, 249)
             a_txt = (71, 85, 105)
         elif grt_val >= 7.2:
-            alerta = f"CRECIMIENTO ACELERADO ({grt_val:.1f} cm/ano): Estiron puberal intenso. Reducir impacto."
+            alerta = f"CRECIMIENTO ACELERADO ({grt_val:.1f} cm/año): Estirón puberal intenso. Reducir impacto."
             a_fill = (254, 226, 226)
             a_txt = (220, 38, 38)
         elif grt_val >= 5:
-            alerta = f"CRECIMIENTO MODERADO ({grt_val:.1f} cm/ano): Fase del estiron. Monitorear fatiga articular."
+            alerta = f"CRECIMIENTO MODERADO ({grt_val:.1f} cm/año): Fase del estirón. Monitorear fatiga articular."
             a_fill = (254, 243, 199)
             a_txt = (217, 119, 6)
         else:
-            alerta = f"CRECIMIENTO ESTABLE ({grt_val:.1f} cm/ano): Fase de meseta. Luz verde para cargas."
+            alerta = f"CRECIMIENTO ESTABLE ({grt_val:.1f} cm/año): Fase de meseta. Luz verde para cargas."
             a_fill = (209, 250, 229)
             a_txt = (16, 185, 129)
 

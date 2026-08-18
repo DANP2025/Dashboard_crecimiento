@@ -296,11 +296,21 @@ if not df_latest.empty:
         if not data_jug.empty:
             v_edad = f"{data_jug['Edad_Decimal'].values[0]:.2f}"
             v_edad_phv = f"{data_jug['Edad PHV'].values[0]:.2f}"
-            v_etapa = "Normal" if data_jug['M.O'].values[0] >= 0 else "Tardía"
+            
+            edad_phv_val = data_jug['Edad PHV'].values[0] if 'Edad PHV' in data_jug.columns else np.nan
+            if pd.isna(edad_phv_val):
+                v_etapa = "--"
+            elif edad_phv_val < 13.5:
+                v_etapa = "Temprano"
+            elif edad_phv_val <= 14.5:
+                v_etapa = "Normal"
+            else:
+                v_etapa = "Tardío"
+                
             v_alt = f"{data_jug['Altura de Pie '].values[0]:.1f}"
             v_peso = f"{data_jug['Peso'].values[0]:.2f}"
             grt = data_jug['Gr.T'].values[0]
-            v_ritmo = f"{grt:.2f}" if pd.notna(grt) else "Sin datos"
+            v_ritmo = f"{grt:.2f}" if pd.notna(grt) else "--"
             v_phv = data_jug['% PHV'].values[0] if not pd.isna(data_jug['% PHV'].values[0]) else 0
             v_grt = grt if not pd.isna(grt) else 0
         else:
@@ -340,8 +350,14 @@ if not df_latest.empty:
         st.markdown("<h3 style='text-align: center; color: #0F172A; margin-top: 30px; font-weight: 800; font-size: 2.2rem;'>Cinética de Crecimiento vs. Años al PHV</h3>", unsafe_allow_html=True)
         df_hist_plot = df_historico.dropna(subset=['Edad_Decimal', 'Altura de Pie ']).copy()
         if jug_sel != "Todos": df_hist_plot = df_hist_plot[df_hist_plot['Nombre y Apellido'] == jug_sel]
-        df_hist_plot['Etapa'] = np.where(df_hist_plot['M.O'] >= 0, 'Normal', 'Tardía')
-        fig3 = px.scatter(df_hist_plot, x='Edad_Decimal', y='Altura de Pie ', color='Etapa', color_discrete_map={'Normal': '#1E3A8A', 'Tardía': '#60A5FA'}, hover_name='Nombre y Apellido', labels={'Edad_Decimal': 'Edad Cronológica (Años)', 'Altura de Pie ': 'Talla (cm)'})
+        def clasificar_etapa(e_phv):
+            if pd.isna(e_phv): return '--'
+            if e_phv < 13.5: return 'Temprano'
+            if e_phv <= 14.5: return 'Normal'
+            return 'Tardío'
+            
+        df_hist_plot['Etapa'] = df_hist_plot['Edad PHV'].apply(clasificar_etapa)
+        fig3 = px.scatter(df_hist_plot, x='Edad_Decimal', y='Altura de Pie ', color='Etapa', color_discrete_map={'Temprano': '#EF4444', 'Normal': '#10B981', 'Tardío': '#F59E0B'}, hover_name='Nombre y Apellido', labels={'Edad_Decimal': 'Edad Cronológica (Años)', 'Altura de Pie ': 'Talla (cm)'})
         fig3.update_traces(marker=dict(size=18, line=dict(width=2, color='white')))
         fig3.update_layout(plot_bgcolor='white', height=500, margin=dict(t=30, b=30), legend_title_text='Ritmo Madurativo', legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, font=dict(size=22)), font=plotly_font_config, hoverlabel=plotly_hover_config)
         fig3.update_xaxes(showgrid=True, gridcolor='#EFEFEF', title_font=dict(size=22, weight='bold'), hoverformat=".2f")
@@ -441,7 +457,7 @@ if not df_latest.empty:
             
             # Clasificación de Fase
             if mo_val < -1:
-                fase = "PRE-PHV (Fase Temprana)"
+                fase = "PRE-PHV (Fase Pre-Puberal)"
                 color_fase = "#10B981" # Verde
                 foco_fisico = "<ul><li><b>Fuerza:</b> Dominio del peso corporal, saltos básicos, técnica de patrones de movimiento.</li><li><b>Velocidad:</b> Agilidad multidireccional, velocidad de reacción (neural).</li><li><b>Resistencia:</b> Juegos reducidos, desarrollo aeróbico lúdico.</li></ul>"
                 foco_tec = "<ul><li>Alta capacidad de aprendizaje motor. Ideal para adquirir gestos técnicos complejos.</li><li>Fomentar la exploración de diferentes posiciones en el campo.</li></ul>"
